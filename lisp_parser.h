@@ -5,9 +5,13 @@
 
 typedef enum value_type
 {
+	STRING,
+	// putting these last so that you can say 'type < LIST' etc.
 	LIST,
-	STRING
+	ENVIRONMENT
 } ValueType;
+
+/* extern */ struct Environment;
 
 typedef struct Node
 {
@@ -15,6 +19,7 @@ typedef struct Node
 	{
 		char * string_value;
 		struct Node * list_value;
+		struct Environment * environment;
 	};
 	struct Node * next;
 	ValueType value_type;
@@ -25,4 +30,4 @@ char buffer[BUFFER_SIZE];
 
 extern Node * parse_list();
 extern void print_list(Node * list);
-
+extern void println_list(Node * list);

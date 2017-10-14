@@ -71,6 +71,7 @@ void print_list(Node * list)
 		printf(sep);
 		if (list->value_type == LIST) print_list(list->list_value);
 		if (list->value_type == STRING) printf(list->string_value);
+		if (list->value_type == ENVIRONMENT) printf("lambda");
 		sep = " ";
 
 		list = list->next;
@@ -79,3 +80,8 @@ void print_list(Node * list)
 	printf(")");
 }
 
+void println_list(Node * list)
+{
+	print_list(list);
+	printf("\n");
+}
