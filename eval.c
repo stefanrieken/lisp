@@ -22,24 +22,28 @@ static Node * find_label(char * name, Environment * environment)
 static Node * find_function(char * name, Environment * environment)
 {
 	Node * val = find_label(name, environment);
-printf("val: %p\n", val);
-printf("type: %d\n", val->value_type);
 	if (val != NULL && val->value_type == ENVIRONMENT) return val;
 	else return NULL;
 }
 
 // Mm, I feel that this should be inside 'eval'
+// NB: we work on the node's single value so we have to sever it loose from any 'next'
 Node * resolve_or_eval(Node * expression, Environment * environment)
 {
 	// here we get into some trouble because we can't yet discern
 	// strings from words, so we just try to lookup all words
 	if (expression->value_type == STRING)
 	{
-printf("trying to lookup string value %s\n", expression->string_value);
 		Node * label_value = find_label(expression->string_value, environment);
-printf("label_value %p\n", label_value);
+
 		if (label_value != NULL) return label_value;
-		else return expression;
+		else
+		{
+			Node * result = new (Node);
+			memcpy(result, expression, sizeof(Node));
+			result->next = NULL;
+			return result;
+		}
 	}
 	else return eval(expression->list_value, environment);
 }
@@ -85,14 +89,15 @@ static Node * cdr(Node * arg)
 	return val->next;
 }
 
-static Node * cons(Node * arg)
+static Node * cons(Node * car, Environment * environment)
 {
-	if (arg == NULL) return NULL;
-	Node * cdr = arg->next;
-	if (cdr == NULL || cdr->value_type != LIST) return NULL; // own rule: cdr != atom
-	Node * node = new(Node);
-	memcpy(node, arg, sizeof(Node));
-	node->next = cdr->list_value;
+	if (car == NULL) return NULL;
+	Node * cdr = car->next;
+	if (cdr == NULL) return NULL;
+	Node * node = resolve_or_eval(car, environment);
+	if (cdr->list_value == NULL) return node; // this un-quoted form is technically wrong
+	Node * next = resolve_or_eval(cdr, environment);
+	if (next != NULL && (next->value_type != LIST || next->list_value != NULL)) node->next = next;
 	return node;
 }
 
@@ -104,7 +109,6 @@ static Node * cond(Node * arg)
 
 static Node * lambda(Node * arg, Environment * environment)
 {
-printf("Doing lambda\n");
 	Node * node = new(Node);
 	node->value_type = ENVIRONMENT;
 	node->environment = environment;
@@ -132,11 +136,39 @@ static Node * label(Node * arg, Environment * environment)
 	return arg;
 }
 
+// This one is not usually quoted as a required primitive
+// but I can't for the life of me imagine how otherwise to
+// produce a list with evaluated contents with only the other
+// primitives mentioned above.
+static Node * list(Node * args, Environment * environment)
+{
+	Node * first_list_item = NULL;
+	Node * last_list_item = NULL;
+
+	while (args != NULL)
+	{
+		Node * result = resolve_or_eval(args, environment);
+		Node * list_item = new(Node);
+		memcpy(list_item, result, sizeof(Node));
+		result->next = NULL;
+
+		if (first_list_item == NULL) first_list_item = list_item;
+		if (last_list_item == NULL) last_list_item = list_item;
+		else last_list_item->next = list_item;
+
+		// New list item could be many nodes long
+		while (last_list_item->next != NULL)
+			last_list_item = last_list_item->next;
+
+		args = args->next;
+	}
+
+	return first_list_item;
+}
+
 // args contains the *expressions that result in the arg values after evaluation*
 static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment * lambda_env)
 {
-//	if (function == NULL || function->value_type != ENVIRONMENT) return NULL;
-
 	Environment * function_env = new(Environment);
 	function_env->parent = lambda_env;
 
@@ -171,11 +203,12 @@ Node * eval (Node * expression, Environment * environment)
 	else if (streq(value, "eq")) return eq(args);
 	else if (streq(value, "car")) return car(args);
 	else if (streq(value, "cdr")) return cdr(args);
-	else if (streq(value, "cons")) return cons(args);
+	else if (streq(value, "cons")) return cons(args, environment);
 	else if (streq(value, "quote")) return args; // duh!
 	else if (streq(value, "cond")) return cond(args);
 	else if (streq(value, "lambda")) return lambda(args, environment);
 	else if (streq(value, "label")) return label(args, environment);
+	else if (streq(value, "list")) return list(args, environment);
 	else return apply(expression, environment);
 }
 
@@ -188,11 +221,9 @@ Node * apply (Node * expression, Environment * environment)
 	char * name = expression->string_value;
 	// -arg expressions
 	Node * arg_exps = expression->next;
-printf("args: %p\n", arg_exps);
 
 	// Analyze the function definition
 	Node * function = find_function(name, environment);
-printf("func: %p\n", function);
 	// - environment
 	if (function == NULL || function->value_type != ENVIRONMENT) return NULL;
 	Environment * lambda_env = function->environment;
@@ -200,7 +231,6 @@ printf("func: %p\n", function);
 	Node * arg_names_list = function->next;
 	if (arg_names_list == NULL || arg_names_list->value_type != LIST) return NULL;
 	Node * arg_names = arg_names_list->list_value;
-printf("arg names: %p\n", arg_names);
 	// - body
 	Node * body_forms = arg_names_list->next;
 	if (body_forms != NULL && body_forms->value_type == STRING)
@@ -212,9 +242,7 @@ printf("arg names: %p\n", arg_names);
 	Node * result = NULL;
 	while (body_forms != NULL)
 	{
-printf("value type: %d\n", body_forms->value_type);
 		if (body_forms->value_type != LIST) return NULL;
-printf("pass\n");
 		result = eval(body_forms->list_value, function_env);
 		body_forms = body_forms->next;
 	}
