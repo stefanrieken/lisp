@@ -3,8 +3,36 @@ This is another LISP parser research project, this time in C.
 State
 -----
 It has most of the traditional logic primitives implemented. (But I have yet to do 'cond'.)
-At the moment all words and values are treated as strings. No integer functions have been implemented yet.
+At the moment all words and values are treated as strings. You can enter them both as un-quoted
+words and quoted and escaped strings (i.e. foo and "ba\r\n").
+No integer functions have been implemented yet, and integers are words / strings like any other.
 
+Error handling
+--------------
+I have currently designed the built-in functions so that they return a useful value on success,
+even if it's only echoing (part of) their inputs.
+Invalid input is currently silently refused by returning a NULL value in code,
+which is shown as an empty list.
+In part, this reflects the concept of 'true' being any value but NIL and NIL being the empty list.
+
+But be aware that errors can currently silently be converted into empty lists,
+which might even be successfully processed further down. I'm sure that this system won't hold in the long run,
+but for now it helps me following the intuition of 'no side effects'.
+
+Side effects
+------------
+The 'label' primitive, which I didn't invent myself, modifies the current state.
+This is slightly annoying because apart from that, the current system is completely side-effect free.
+Input is only accepted in the form of input data, output is purely return values.
+This is part laziness part conscious approach.
+
+The 'label' primitive is what you get when you model your core on a late 1950's experiment.
+Maybe it would pay to re-model the core primitives on e.g. Scheme in the future.
+I'm curious to compare notes between the two.
+
+
+Hello
+-----
 Here's how you can currently get a hello-world-like result on stack:
 
 	(label greet (lambda (x) (cons hello (cons x (quote ())))))
