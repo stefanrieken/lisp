@@ -4,6 +4,7 @@
 // Also, the lexer doesn't convert 
 
 #include "lisp_lexer.h"
+#include "../tmmh/tmmh.h"
 
 static inline bool is_whitespace (int c)
 {
@@ -15,10 +16,12 @@ static inline bool is_bracket (int c)
 	return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
 }
 
-static inline int parse_bracket(int c, char * buffer, int bufferLength)
+char * parse_bracket(int c)
 {
-	buffer[0] = (char) c;
-	return 1;
+	char * value = (char *) allocate(2, false);
+	value[0] = c;
+	value[1] = 0;
+	return value;
 }
 
 static inline int get_non_whitespace_char()
@@ -33,41 +36,34 @@ static inline int get_non_whitespace_char()
 	return c;
 }
 
-// returns -1 if no success, otherwise size
-int parse_label (int c, char * buffer, int buffer_length)
+char * parse_label (int c)
 {
-	int size = 0; // first character was already parsed
-	bool bracket;
-	bool at_end;
+	int size = 1;
+	char * result = (char *) allocate(size, false);
+
 	do
 	{
-		buffer[size++] = c;
+		result[size-1] = c;
+		result = reallocate(result, ++size, false);
 		c = buffered_read();
-		bracket = is_bracket(c);
-		if (bracket) buffer_return(c);
-		at_end = (c == -1) || bracket || is_whitespace(c);
 	}
-	while (!at_end && size < buffer_length);
+	while (c != -1 && !is_bracket(c) && !is_whitespace(c));
 
-	if (!at_end) return -1; // buffer was too small
-	else return size;
+	if (c != -1) buffer_return(c);
+
+	result[size-1] = 0;
+	set_type(result, ID);
+	return result;
 }
 
-int parse_word(char * buffer, int buffer_length)
+char * parse_zero_ending_word()
 {
 	int c = get_non_whitespace_char();
 
-	if (c == -1) return -1;
-	else if (is_bracket(c)) return parse_bracket(c, buffer, buffer_length);
-	else if (c == '"') return parse_string(buffer, buffer_length);
-	else return parse_label(c, buffer, buffer_length);
-}
-
-int parse_zero_ending_word(char * buffer, int buffer_length)
-{
-	int size = parse_word(buffer, buffer_length-1);
-	if (size != -1) buffer[size++] = (char) 0;
-	return size;
+	if (c == -1) return NULL;
+	else if (is_bracket(c)) return parse_bracket(c);
+	else if (c == '"') return parse_string();
+	else return parse_label(c);
 }
 
 void discard_initial_opening_bracket()

@@ -1,4 +1,5 @@
 #include "parse_string.h"
+#include "../tmmh/tmmh.h"
 
 char * escapes = "nrtf";
 char * replacements = "\n\r\t\f";
@@ -13,27 +14,33 @@ static inline int replace_escapes(int c)
 }
 
 // assumes the starting '"' was already parsed
-// returns -1 if no success, otherwise size
-int parse_string(char * buffer, int bufferLength)
+char * parse_string()
 {
-	int size = 0;
+	int size = 1;
+	char * result = (char *) allocate(size, false);
 	int c = buffered_read();
 
-	while (c != -1 && c != '"' && size < bufferLength)
+	while (c != -1 && c != '"')
 	{
 		if (c == '\\')
 		{
 			c = buffered_read();
 			if (c != -1)
-				buffer[size++] = replace_escapes(c);
+				c = replace_escapes(c);
 		}
-		else buffer[size++] = c;
 
-		c = buffered_read();
+		if (c != -1)
+		{
+			result[size-1] = c;
+			result = reallocate(result, ++size, false);
+			c = buffered_read();
+		}
 	}
 
-	if (c != '"') return -1; // string was not properly closed within length of buffer
-	else return size;
+	result[size-1] = 0;
+
+	if (c != '"') return NULL; // string was not properly closed within length of buffer
+	else return result;
 }
 
 

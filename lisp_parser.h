@@ -3,14 +3,6 @@
 #include <string.h>
 #include "lisp_lexer.h"
 
-typedef enum value_type
-{
-	STRING,
-	// putting these last so that you can say 'type < LIST' etc.
-	LIST,
-	ENVIRONMENT
-} ValueType;
-
 /* extern */ struct Environment;
 
 typedef struct Node

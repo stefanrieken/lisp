@@ -3,6 +3,8 @@ This is another LISP parser research project, this time in C.
 State
 -----
 It has most of the traditional logic primitives implemented. (But I have yet to do 'cond'.)
+
+This project is in the transition of using tmmh for its storage.
 At the moment all words and values are treated as strings. You can enter them both as un-quoted
 words and quoted and escaped strings (i.e. foo and "ba\r\n").
 No integer functions have been implemented yet, and integers are words / strings like any other.

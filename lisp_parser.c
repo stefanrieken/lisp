@@ -24,7 +24,7 @@ static inline Node * create_list_node (Node * value)
 static inline Node * create_string_node (char * value)
 {
 	Node * node = (Node *) new(Node);
-	node->string_value = strdup(buffer);
+	node->string_value = value;
 	node->value_type = STRING;
 	return node;
 }
@@ -34,17 +34,17 @@ Node * parse_list()
 	Node * first_node = NULL;
 	Node * last_node = NULL;
 
-	int size = parse_zero_ending_word(buffer, BUFFER_SIZE);
+	char * word = parse_zero_ending_word();
 
-	while (size != -1)
+	while (word != NULL)
 	{
-		if (buffer[0] == ')') // end of this list
+		if (word[0] == ')') // end of this list
 			return first_node;
 
 		Node * new_node;
 
-		if (buffer[0] == '(') new_node = create_list_node(parse_list());
-		else new_node = create_string_node(strdup(buffer));
+		if (word[0] == '(') new_node = create_list_node(parse_list());
+		else new_node = create_string_node(word);
 
 		if (last_node != NULL)
 		{
@@ -55,7 +55,7 @@ Node * parse_list()
 
 		if (first_node == NULL) first_node = new_node;
 
-		size = parse_zero_ending_word(buffer, BUFFER_SIZE);
+		word = parse_zero_ending_word();
 	}
 
 	return first_node;
