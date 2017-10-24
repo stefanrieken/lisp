@@ -4,7 +4,7 @@ State
 -----
 It has most of the traditional logic primitives implemented. (But I have yet to do 'cond'.)
 
-This project is in the transition of using tmmh for its storage.
+This project is in the transition of using tmmh for its heap management and data typing.
 At the moment all words and values are treated as strings. You can enter them both as un-quoted
 words and quoted and escaped strings (i.e. foo and "ba\r\n").
 No integer functions have been implemented yet, and integers are words / strings like any other.
@@ -40,7 +40,8 @@ Here's how you can currently get a hello-world-like result on stack:
 	(label greet (lambda (x) (cons hello (cons x (quote ())))))
 	(greet world)
 
-This just goes to show how dense LISP (originally) really is.
+Note that if I'd juust quote 'hello' and 'x', 'x' would never get evaluated.
+In my mind, this just goes to show how dense LISP (originally) really is.
 Remember they initially tried to make an easier-to-understand Turing machine, not a practical language!
 But it also goes to show why people call the macro functionality of LISP 'a great tool'.
 Personally I'm unsure whether hiding such dense syntax under a carpet of macros is an advertisement for any language.
@@ -51,4 +52,5 @@ I did add a 'list' primitive which takes the biggest load off the above:
 	(label greet (lambda (x) (list hello x)))
 	(greet world)
 
-Notice that there is no real need ATM for quoting string values (as they are treated the same as words).
+Notice that all these examples treat unknown identifiers as strings. Currently this is still allowed. If you want to be more purist about it, double-quote your strings.
+

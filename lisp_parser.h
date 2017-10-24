@@ -7,18 +7,9 @@
 
 typedef struct Node
 {
-	union
-	{
-		char * string_value;
-		struct Node * list_value;
-		struct Environment * environment;
-	};
-	struct Node * next;
-	ValueType value_type;
+	void * value;
+	struct Node * next; // TODO in pure LISP this may also be any type
 } Node;
-
-#define BUFFER_SIZE 255
-char buffer[BUFFER_SIZE];
 
 extern Node * parse_list();
 extern void print_list(Node * list);

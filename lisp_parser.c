@@ -10,22 +10,23 @@
 // This implementation explores the traditional approach, ignoring optimization.
 
 #include "lisp_parser.h"
-
-#define new(bla) (bla *) malloc(sizeof(bla))
+#include "../tmmh/tmmh.h"
 
 static inline Node * create_list_node (Node * value)
 {
-	Node * node = (Node *) new(Node);
-	node->list_value = value;
-	node->value_type = LIST;
+	Node * node = (Node *) allocate(sizeof(Node), false);
+	set_type(node, LIST);
+	node->value = value;
+	node->next = NULL;
 	return node;
 }
 
 static inline Node * create_string_node (char * value)
 {
-	Node * node = (Node *) new(Node);
-	node->string_value = value;
-	node->value_type = STRING;
+	Node * node = (Node *) allocate(sizeof(Node), false);
+	set_type(node, LIST);
+	node->value = value;
+	node->next = NULL;
 	return node;
 }
 
@@ -66,12 +67,16 @@ void print_list(Node * list)
 	printf ("(");
 	char * sep = "";
 
-	while (list != NULL)
+	while (list != NULL && list->value != NULL)
 	{
 		printf(sep);
-		if (list->value_type == LIST) print_list(list->list_value);
-		if (list->value_type == STRING) printf(list->string_value);
-		if (list->value_type == ENVIRONMENT) printf("lambda");
+		int type = get_type(list->value);
+
+		if (type == LIST) print_list(list->value);
+		else if (type == ID) printf(list->value);
+		else if (type == STRING) printf("\"%s\"", (char *) list->value);
+		else if (type == LAMBDA) printf("lambda");
+		else printf("unknown type %d %s", type, (char *) list->value);
 		sep = " ";
 
 		list = list->next;

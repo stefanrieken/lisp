@@ -9,8 +9,10 @@ typedef enum value_type
 	INT,
 	STRING,
 	ID,
+	LAMBDA,
 	LIST,
-	ENVIRONMENT
+	ENVIRONMENT,
+	VARIABLE
 } ValueType;
 
 extern char * parse_zero_ending_word();

@@ -12,10 +12,12 @@ int main ()
 	printf("Welcome to LISP.\n");
 	printf("^D to exit.\n");
 
-	pif pifs[] = {pif_none, pif_none, pif_none, pif_none, pif_none, pif_none};
+	pif pifs[] = {pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none};
 
-	tmmh_init(500, pifs);
-	Environment * root_env = (Environment *) malloc(sizeof(Environment));
+	tmmh_init(5000, pifs);
+	Environment * root_env = (Environment *) allocate(sizeof(Environment), false);
+	root_env->parent = NULL;
+	root_env->variables = NULL;
 
 	// Read, Eval, Print loop
 	Node * command = read();

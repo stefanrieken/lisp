@@ -1,6 +1,14 @@
 #include "eval.h"
+#include "../tmmh/tmmh.h"
 
-#define new(bla) (bla *) malloc(sizeof(bla))
+#define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
+
+static inline void * allocate_type(int size, int type)
+{
+	void * bla = allocate(size, false);
+	set_type(bla, type);
+	return bla;
+}
 
 static inline bool streq(char * str1, char * str2)
 {
@@ -22,7 +30,7 @@ static Node * find_label(char * name, Environment * environment)
 static Node * find_function(char * name, Environment * environment)
 {
 	Node * val = find_label(name, environment);
-	if (val != NULL && val->value_type == ENVIRONMENT) return val;
+	if (val != NULL && get_type(val->value) == LAMBDA) return val;
 	else return NULL;
 }
 
@@ -30,22 +38,20 @@ static Node * find_function(char * name, Environment * environment)
 // NB: we work on the node's single value so we have to sever it loose from any 'next'
 Node * resolve_or_eval(Node * expression, Environment * environment)
 {
-	// here we get into some trouble because we can't yet discern
-	// strings from words, so we just try to lookup all words
-	if (expression->value_type == STRING)
+	int type = get_type(expression->value);
+	if (type == LIST) return eval(expression->value, environment);
+	else
 	{
-		Node * label_value = find_label(expression->string_value, environment);
-
-		if (label_value != NULL) return label_value;
-		else
+		if (type == ID)
 		{
-			Node * result = new (Node);
-			memcpy(result, expression, sizeof(Node));
-			result->next = NULL;
-			return result;
+			Node * label_value = find_label(expression->value, environment);
+			if (label_value != NULL) return label_value;
 		}
+		Node * result = new(Node, LIST);
+		memcpy(result, expression, sizeof(Node));
+		result->next = NULL;
+		return result;
 	}
-	else return eval(expression->list_value, environment);
 }
 
 // We use the old-fashioned definition:
@@ -55,28 +61,28 @@ Node * resolve_or_eval(Node * expression, Environment * environment)
 // if we do not secure other methods to recognize this special value
 static Node * atom(Node * arg)
 {
-	if (arg == NULL || arg->value_type >= LIST) return NULL;
+	if (arg == NULL || get_type(arg->value) >= LIST) return NULL;
 	return arg;
 }
 
 // Only on atoms!
 static Node * eq(Node * lhs)
 {
-	if (lhs == NULL || lhs->value_type >= LIST) return NULL;
+	if (lhs == NULL || get_type(lhs->value) >= LIST) return NULL;
 
 	Node * rhs = lhs->next;
-	if (rhs == NULL || rhs->value_type >= LIST) return NULL;
+	if (rhs == NULL || get_type(rhs->value) >= LIST) return NULL;
 
-	if (streq(lhs->string_value, rhs->string_value)) return lhs; // 'true'
+	if (streq((char *) lhs->value, (char *) rhs->value)) return lhs; // 'true'
 	return NULL; // 'false'
 }
 
 static Node * car(Node * arg)
 {
-	if (arg == NULL || arg->value_type != LIST) return NULL;
-	Node * val = arg->list_value;
+	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
+	Node * val = (Node *) arg->value;
 
-	Node * node = new(Node);
+	Node * node = new(Node, LIST);
 	memcpy(node, val, sizeof(Node));
 	node->next = NULL;
 	return node;
@@ -84,8 +90,8 @@ static Node * car(Node * arg)
 
 static Node * cdr(Node * arg)
 {
-	if (arg == NULL || arg->value_type != LIST) return NULL;
-	Node * val = arg->list_value;
+	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
+	Node * val = (Node *) arg->value;
 	return val->next;
 }
 
@@ -93,11 +99,11 @@ static Node * cons(Node * car, Environment * environment)
 {
 	if (car == NULL) return NULL;
 	Node * cdr = car->next;
-	if (cdr == NULL) return NULL;
 	Node * node = resolve_or_eval(car, environment);
-	if (cdr->list_value == NULL) return node; // this un-quoted form is technically wrong
+	if (cdr == NULL) return node;
+	if (cdr->value == NULL) return node; // this un-quoted form is technically wrong
 	Node * next = resolve_or_eval(cdr, environment);
-	if (next != NULL && (next->value_type != LIST || next->list_value != NULL)) node->next = next;
+	if (next != NULL && next->value != NULL) node->next = next;
 	return node;
 }
 
@@ -109,20 +115,21 @@ static Node * cond(Node * arg)
 
 static Node * lambda(Node * arg, Environment * environment)
 {
-	Node * node = new(Node);
-	node->value_type = ENVIRONMENT;
-	node->environment = environment;
+	Node * node = new(Node, LIST);
+	node->value = environment;
+	set_type(node->value, LAMBDA);
 	node->next = arg;
 	return node;
 }
 
 static Node * label(Node * arg, Environment * environment)
 {
-	if (arg == NULL || arg->value_type != STRING) return NULL;
+	if (arg == NULL || get_type(arg->value) != ID) return NULL;
 
-	Variable * variable = new(Variable);
-	variable->name = arg->string_value;
+	Variable * variable = new(Variable, VARIABLE);
+	variable->name = arg->value;
 	variable->value = resolve_or_eval(arg->next, environment);
+	variable->next = NULL;
 
 	if(environment->variables != NULL)
 	{
@@ -132,7 +139,6 @@ static Node * label(Node * arg, Environment * environment)
 	}
 	else
 		environment->variables = variable;
-
 	return arg;
 }
 
@@ -148,7 +154,8 @@ static Node * list(Node * args, Environment * environment)
 	while (args != NULL)
 	{
 		Node * result = resolve_or_eval(args, environment);
-		Node * list_item = new(Node);
+		Node * list_item = new(Node, LIST);
+		list_item->next = NULL;
 		memcpy(list_item, result, sizeof(Node));
 		result->next = NULL;
 
@@ -169,16 +176,16 @@ static Node * list(Node * args, Environment * environment)
 // args contains the *expressions that result in the arg values after evaluation*
 static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment * lambda_env)
 {
-	Environment * function_env = new(Environment);
+	Environment * function_env = new(Environment, ENVIRONMENT);
 	function_env->parent = lambda_env;
+	function_env->variables = NULL;
 
 	while (arg_names != NULL)
 	{
-		if (arg_names->value_type != STRING) return NULL;
-		Variable * arg = new(Variable);
-		arg->name = arg_names->string_value;
+		if (get_type(arg_names->value) != ID) return NULL;
+		Variable * arg = new(Variable,VARIABLE);
+		arg->name = (char *) arg_names->value;
 		arg->value = resolve_or_eval(arg_exps, lambda_env);
-
 		// reverse insert is easier
 		arg->next = function_env->variables;
 		function_env->variables = arg;
@@ -194,9 +201,10 @@ Node * eval (Node * expression, Environment * environment)
 {
 	// Idea: only apply expression when we can match it to a function,
 	// otherwise leave / return it unused
-	if (expression->value_type != STRING) return expression;
 
-	char * value = expression->string_value;
+	if (get_type(expression->value) != ID) return expression;
+
+	char * value = (char *) expression->value;
 	Node * args = expression->next;
 
 	if (streq(value, "atom")) return atom(args);
@@ -214,36 +222,35 @@ Node * eval (Node * expression, Environment * environment)
 
 Node * apply (Node * expression, Environment * environment)
 {
-	if (expression == NULL || expression->value_type != STRING) return NULL;
+	if (expression == NULL || get_type(expression->value) != ID) return expression;
 
 	// Analyze the call
 	// -name
-	char * name = expression->string_value;
+	char * name = (char *) expression->value;
 	// -arg expressions
 	Node * arg_exps = expression->next;
 
 	// Analyze the function definition
 	Node * function = find_function(name, environment);
 	// - environment
-	if (function == NULL || function->value_type != ENVIRONMENT) return NULL;
-	Environment * lambda_env = function->environment;
+	if (function == NULL || get_type(function->value) != LAMBDA) return NULL;
+	Environment * lambda_env = (Environment *) function->value;
 	// - arg names
 	Node * arg_names_list = function->next;
-	if (arg_names_list == NULL || arg_names_list->value_type != LIST) return NULL;
-	Node * arg_names = arg_names_list->list_value;
+	if (arg_names_list == NULL || get_type(arg_names_list->value) != LIST) return NULL;
+	Node * arg_names = arg_names_list->value;
 	// - body
 	Node * body_forms = arg_names_list->next;
-	if (body_forms != NULL && body_forms->value_type == STRING)
+	if (body_forms != NULL && get_type(body_forms->value) == STRING)
 		body_forms = body_forms->next; // skip def comment
 
 
 	Environment * function_env = extract_args(arg_names, arg_exps, lambda_env);
-
 	Node * result = NULL;
 	while (body_forms != NULL)
 	{
-		if (body_forms->value_type != LIST) return NULL;
-		result = eval(body_forms->list_value, function_env);
+		if (get_type(body_forms->value) != LIST) return NULL;
+		result = eval(body_forms->value, function_env);
 		body_forms = body_forms->next;
 	}
 

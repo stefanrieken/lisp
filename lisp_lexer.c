@@ -43,7 +43,7 @@ char * parse_label (int c)
 
 	do
 	{
-		result[size-1] = c;
+		result[size-1] = (char) c;
 		result = reallocate(result, ++size, false);
 		c = buffered_read();
 	}

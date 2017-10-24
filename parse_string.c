@@ -1,5 +1,6 @@
 #include "parse_string.h"
 #include "../tmmh/tmmh.h"
+#include "lisp_lexer.h"
 
 char * escapes = "nrtf";
 char * replacements = "\n\r\t\f";
@@ -18,6 +19,7 @@ char * parse_string()
 {
 	int size = 1;
 	char * result = (char *) allocate(size, false);
+	set_type(result, STRING);
 	int c = buffered_read();
 
 	while (c != -1 && c != '"')
