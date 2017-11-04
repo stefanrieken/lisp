@@ -8,9 +8,13 @@
 typedef struct Node
 {
 	void * value;
-	struct Node * next; // TODO in pure LISP this may also be any type
+	void * next;
 } Node;
 
+
+extern void * parse_value();
 extern Node * parse_list();
-extern void print_list(Node * list);
-extern void println_list(Node * list);
+
+extern void print_value(void * list);
+extern void println_value(void * list);
+

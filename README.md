@@ -40,7 +40,7 @@ Here's how you can currently get a hello-world-like result on stack:
 	(label greet (lambda (x) (cons hello (cons x (quote ())))))
 	(greet world)
 
-Note that if I'd juust quote 'hello' and 'x', 'x' would never get evaluated.
+Note that if I'd just quote 'hello' and 'x', 'x' would never get evaluated.
 In my mind, this just goes to show how dense LISP (originally) really is.
 Remember they initially tried to make an easier-to-understand Turing machine, not a practical language!
 But it also goes to show why people call the macro functionality of LISP 'a great tool'.

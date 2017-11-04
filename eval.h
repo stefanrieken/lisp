@@ -2,7 +2,7 @@
 
 typedef struct Variable {
 	char * name;
-	Node * value;
+	void * value;
 	struct Variable * next;
 } Variable;
 
@@ -11,6 +11,6 @@ typedef struct Environment {
 	Variable * variables;
 } Environment;
 
-extern Node * eval (Node * expression, Environment * environment);
+extern Node * eval (void * expression, Environment * environment);
 extern Node * apply (Node * expression, Environment * environment);
 

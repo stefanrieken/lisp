@@ -1,10 +1,9 @@
 #include "eval.h"
 #include "../tmmh/tmmh.h"
 
-static Node * read()
+static void * read()
 {
-	discard_initial_opening_bracket();
-	return parse_list();
+	return parse_value();
 }
 
 int main ()
@@ -24,7 +23,7 @@ int main ()
 	while (command != NULL)
 	{
 		Node * result = eval(command, root_env);
-		println_list(result);
+		println_value(result);
 		command = read();
 	}
 }

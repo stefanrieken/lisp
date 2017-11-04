@@ -15,5 +15,6 @@ typedef enum value_type
 	VARIABLE
 } ValueType;
 
-extern char * parse_zero_ending_word();
-extern void discard_initial_opening_bracket();
+extern int get_non_whitespace_char();
+extern char * parse_label (int c);
+

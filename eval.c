@@ -125,10 +125,12 @@ static Node * lambda(Node * arg, Environment * environment)
 static Node * label(Node * arg, Environment * environment)
 {
 	if (arg == NULL || get_type(arg->value) != ID) return NULL;
+	if (arg->next == NULL) return NULL;
+	Node * val = (Node *) arg->next;
 
 	Variable * variable = new(Variable, VARIABLE);
 	variable->name = arg->value;
-	variable->value = resolve_or_eval(arg->next, environment);
+	variable->value = eval(val->value, environment);
 	variable->next = NULL;
 
 	if(environment->variables != NULL)
@@ -197,15 +199,18 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 	return function_env;
 }
 
-Node * eval (Node * expression, Environment * environment)
+Node * eval (void * expression, Environment * environment)
 {
 	// Idea: only apply expression when we can match it to a function,
 	// otherwise leave / return it unused
 
-	if (get_type(expression->value) != ID) return expression;
+	int type = get_type(expression);
+	if (type < ID) return expression;
+	if (type == ID) return find_label(expression, environment);
 
-	char * value = (char *) expression->value;
-	Node * args = expression->next;
+	Node * node = (Node *) expression;
+	char * value = (char *) node->value;
+	Node * args = node->next;
 
 	if (streq(value, "atom")) return atom(args);
 	else if (streq(value, "eq")) return eq(args);

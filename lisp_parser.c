@@ -12,81 +12,89 @@
 #include "lisp_parser.h"
 #include "../tmmh/tmmh.h"
 
-static inline Node * create_list_node (Node * value)
+void * parse_value()
 {
-	Node * node = (Node *) allocate(sizeof(Node), false);
-	set_type(node, LIST);
-	node->value = value;
-	node->next = NULL;
-	return node;
-}
-
-static inline Node * create_string_node (char * value)
-{
-	Node * node = (Node *) allocate(sizeof(Node), false);
-	set_type(node, LIST);
-	node->value = value;
-	node->next = NULL;
-	return node;
+	int ch = get_non_whitespace_char();
+	if (ch == '"')
+		return parse_string();
+	else if (ch == '(')
+		return parse_list();
+	else if (ch != -1) {
+		return parse_label(ch);
+	}
+	return NULL;
 }
 
 Node * parse_list()
 {
-	Node * first_node = NULL;
-	Node * last_node = NULL;
+	// '(' is already read here
+	int ch = get_non_whitespace_char();
+	if (ch == ')') return NULL; // empty list
+	buffer_return(ch);
 
-	char * word = parse_zero_ending_word();
+	Node * pair = (Node *) allocate(sizeof(Node), false);
+	set_type(pair, LIST);
 
-	while (word != NULL)
-	{
-		if (word[0] == ')') // end of this list
-			return first_node;
+	pair->value = parse_value();
+	ch = get_non_whitespace_char();
+	if (ch == -1) return NULL;
 
-		Node * new_node;
-
-		if (word[0] == '(') new_node = create_list_node(parse_list());
-		else new_node = create_string_node(word);
-
-		if (last_node != NULL)
-		{
-			last_node->next = new_node;
-			last_node = new_node;
-		}
-		else last_node = new_node;
-
-		if (first_node == NULL) first_node = new_node;
-
-		word = parse_zero_ending_word();
+	if (ch == '.') {
+		pair->next = parse_value();
+		int ch = get_non_whitespace_char();
+		if (ch != ')') return NULL; // TODO say parse error
+		return pair;
+	} else if (ch == ')') {
+		pair->next = NULL;
+		return pair;
+	} else {
+		buffer_return(ch);
+		pair->next = parse_list();
+		return pair;
 	}
+}
 
-	return first_node;
+void print_list_body(Node * list)
+{
+	print_value(list->value);
+	if (list->next != NULL) {
+		if (get_type(list->next) == LIST) {
+			printf(" ");
+			print_list_body((Node *) list->next);
+		}
+		else {
+			printf(" . ");
+			print_value(list->next);
+		}
+	}
 }
 
 void print_list(Node * list)
 {
 	printf ("(");
-	char * sep = "";
-
-	while (list != NULL && list->value != NULL)
-	{
-		printf(sep);
-		int type = get_type(list->value);
-
-		if (type == LIST) print_list(list->value);
-		else if (type == ID) printf(list->value);
-		else if (type == STRING) printf("\"%s\"", (char *) list->value);
-		else if (type == LAMBDA) printf("lambda");
-		else printf("unknown type %d %s", type, (char *) list->value);
-		sep = " ";
-
-		list = list->next;
-	}
-
-	printf(")");
+	print_list_body(list);
+	printf (")");
 }
 
-void println_list(Node * list)
+
+void print_value(void * value)
 {
-	print_list(list);
+	if (value == NULL) {
+		printf("nil");
+		return;
+	}
+
+	int type = get_type(value);
+
+	if (type == LIST) print_list((Node *) value);
+	else if (type == ID) printf(value);
+	else if (type == STRING) printf("\"%s\"", (char *) value);
+	else if (type == LAMBDA) printf("lambda");
+	else printf("unknown type %d %s", type, (char *) value);
+}
+
+void println_value(void * value)
+{
+	print_value(value);
 	printf("\n");
 }

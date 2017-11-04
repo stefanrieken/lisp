@@ -24,7 +24,7 @@ char * parse_bracket(int c)
 	return value;
 }
 
-static inline int get_non_whitespace_char()
+int get_non_whitespace_char()
 {
 	int c;
 	do
@@ -56,18 +56,3 @@ char * parse_label (int c)
 	return result;
 }
 
-char * parse_zero_ending_word()
-{
-	int c = get_non_whitespace_char();
-
-	if (c == -1) return NULL;
-	else if (is_bracket(c)) return parse_bracket(c);
-	else if (c == '"') return parse_string();
-	else return parse_label(c);
-}
-
-void discard_initial_opening_bracket()
-{
-	int c = get_non_whitespace_char();
-	if (c != '(') buffer_return(c);
-}
