@@ -11,6 +11,6 @@ typedef struct Environment {
 	Variable * variables;
 } Environment;
 
-extern Node * eval (void * expression, Environment * environment);
+extern void * eval (void * expression, Environment * environment);
 extern Node * apply (Node * expression, Environment * environment);
 

@@ -37,8 +37,8 @@ Hello
 -----
 Here's how you can currently get a hello-world-like result on stack:
 
-	(label greet (lambda (x) (cons hello (cons x (quote ())))))
-	(greet world)
+	(label greet (lambda (x) (cons "hello" (cons x (quote ())))))
+	(greet "world")
 
 Note that if I'd just quote 'hello' and 'x', 'x' would never get evaluated.
 In my mind, this just goes to show how dense LISP (originally) really is.
@@ -49,7 +49,7 @@ Personally I'm unsure whether hiding such dense syntax under a carpet of macros 
 This very simple LISP has no macro support at the moment. Neither does it support the short form of 'quote' (= a single "'").
 I did add a 'list' primitive which takes the biggest load off the above:
 
-	(label greet (lambda (x) (list hello x)))
+	(label greet (lambda (x) (list "hello" x)))
 	(greet world)
 
 Notice that all these examples treat unknown identifiers as strings. Currently this is still allowed. If you want to be more purist about it, double-quote your strings.

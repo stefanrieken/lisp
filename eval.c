@@ -34,26 +34,6 @@ static Node * find_function(char * name, Environment * environment)
 	else return NULL;
 }
 
-// Mm, I feel that this should be inside 'eval'
-// NB: we work on the node's single value so we have to sever it loose from any 'next'
-Node * resolve_or_eval(Node * expression, Environment * environment)
-{
-	int type = get_type(expression->value);
-	if (type == LIST) return eval(expression->value, environment);
-	else
-	{
-		if (type == ID)
-		{
-			Node * label_value = find_label(expression->value, environment);
-			if (label_value != NULL) return label_value;
-		}
-		Node * result = new(Node, LIST);
-		memcpy(result, expression, sizeof(Node));
-		result->next = NULL;
-		return result;
-	}
-}
-
 // We use the old-fashioned definition:
 // false == nil == empty list == null (?? !!)
 // true == anything else, including the argument as passed
@@ -95,16 +75,15 @@ static Node * cdr(Node * arg)
 	return val->next;
 }
 
-static Node * cons(Node * car, Environment * environment)
+static Node * cons(Node * args, Environment * environment)
 {
-	if (car == NULL) return NULL;
-	Node * cdr = car->next;
-	Node * node = resolve_or_eval(car, environment);
-	if (cdr == NULL) return node;
-	if (cdr->value == NULL) return node; // this un-quoted form is technically wrong
-	Node * next = resolve_or_eval(cdr, environment);
-	if (next != NULL && next->value != NULL) node->next = next;
-	return node;
+	if (args == NULL) return NULL;
+	if (args->next == NULL || get_type(args->next) != LIST) return NULL;
+	Node * next = (Node *) args->next;
+	Node * result = new (Node, LIST);
+	result->value = eval(args->value, environment);
+	result->next = eval(next->value, environment);
+	return result;
 }
 
 static Node * cond(Node * arg)
@@ -150,29 +129,12 @@ static Node * label(Node * arg, Environment * environment)
 // primitives mentioned above.
 static Node * list(Node * args, Environment * environment)
 {
-	Node * first_list_item = NULL;
-	Node * last_list_item = NULL;
+	if (args == NULL) return NULL;
+	Node * result = new(Node, LIST);
+	result->value = eval(args->value, environment);
+	result->next = list(args->next, environment);
 
-	while (args != NULL)
-	{
-		Node * result = resolve_or_eval(args, environment);
-		Node * list_item = new(Node, LIST);
-		list_item->next = NULL;
-		memcpy(list_item, result, sizeof(Node));
-		result->next = NULL;
-
-		if (first_list_item == NULL) first_list_item = list_item;
-		if (last_list_item == NULL) last_list_item = list_item;
-		else last_list_item->next = list_item;
-
-		// New list item could be many nodes long
-		while (last_list_item->next != NULL)
-			last_list_item = last_list_item->next;
-
-		args = args->next;
-	}
-
-	return first_list_item;
+	return result;
 }
 
 // args contains the *expressions that result in the arg values after evaluation*
@@ -187,7 +149,7 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 		if (get_type(arg_names->value) != ID) return NULL;
 		Variable * arg = new(Variable,VARIABLE);
 		arg->name = (char *) arg_names->value;
-		arg->value = resolve_or_eval(arg_exps, lambda_env);
+		arg->value = eval(arg_exps->value, lambda_env);
 		// reverse insert is easier
 		arg->next = function_env->variables;
 		function_env->variables = arg;
@@ -199,7 +161,7 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 	return function_env;
 }
 
-Node * eval (void * expression, Environment * environment)
+void * eval (void * expression, Environment * environment)
 {
 	// Idea: only apply expression when we can match it to a function,
 	// otherwise leave / return it unused
@@ -217,7 +179,7 @@ Node * eval (void * expression, Environment * environment)
 	else if (streq(value, "car")) return car(args);
 	else if (streq(value, "cdr")) return cdr(args);
 	else if (streq(value, "cons")) return cons(args, environment);
-	else if (streq(value, "quote")) return args; // duh!
+	else if (streq(value, "quote")) return args->value; // duh!
 	else if (streq(value, "cond")) return cond(args);
 	else if (streq(value, "lambda")) return lambda(args, environment);
 	else if (streq(value, "label")) return label(args, environment);
