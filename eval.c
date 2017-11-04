@@ -39,14 +39,15 @@ static Node * find_function(char * name, Environment * environment)
 // true == anything else, including the argument as passed
 // N.B. of course this leaves ample room for null pointers
 // if we do not secure other methods to recognize this special value
-static Node * atom(Node * arg)
+static void * atom(Node * arg)
 {
 	if (arg == NULL || get_type(arg->value) >= LIST) return NULL;
-	return arg;
+	return arg->value;
 }
 
 // Only on atoms!
-static Node * eq(Node * lhs)
+// TODO: 1) check for type 2) return 'true' if both values are null (~= empty list)
+static void * eq(Node * lhs)
 {
 	if (lhs == NULL || get_type(lhs->value) >= LIST) return NULL;
 
@@ -57,18 +58,14 @@ static Node * eq(Node * lhs)
 	return NULL; // 'false'
 }
 
-static Node * car(Node * arg)
+static void * car(Node * arg)
 {
 	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
 	Node * val = (Node *) arg->value;
-
-	Node * node = new(Node, LIST);
-	memcpy(node, val, sizeof(Node));
-	node->next = NULL;
-	return node;
+	return val->value;
 }
 
-static Node * cdr(Node * arg)
+static void * cdr(Node * arg)
 {
 	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
 	Node * val = (Node *) arg->value;
