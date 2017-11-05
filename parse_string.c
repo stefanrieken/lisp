@@ -1,6 +1,6 @@
 #include "parse_string.h"
 #include "../tmmh/tmmh.h"
-#include "lisp_lexer.h"
+#include "structs.h"
 
 char * escapes = "nrtf";
 char * replacements = "\n\r\t\f";

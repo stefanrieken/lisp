@@ -1,3 +1,6 @@
+#include <stdio.h>
+
+#include "lisp_parser.h"
 #include "eval.h"
 #include "../tmmh/tmmh.h"
 

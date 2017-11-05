@@ -10,6 +10,12 @@
 // This implementation explores the traditional approach, ignoring optimization.
 
 #include "lisp_parser.h"
+
+#include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+
+#include "lisp_lexer.h"
 #include "../tmmh/tmmh.h"
 
 void * parse_value()

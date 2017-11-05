@@ -4,6 +4,7 @@
 // Also, the lexer doesn't convert 
 
 #include "lisp_lexer.h"
+#include "structs.h"
 #include "../tmmh/tmmh.h"
 
 static inline bool is_whitespace (int c)

@@ -1,16 +1,4 @@
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include "lisp_lexer.h"
-
-/* extern */ struct Environment;
-
-typedef struct Node
-{
-	void * value;
-	void * next;
-} Node;
-
+#include "structs.h"
 
 extern void * parse_value();
 extern Node * parse_list();

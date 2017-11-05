@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "eval.h"
 #include "../tmmh/tmmh.h"
 
@@ -103,20 +105,7 @@ static Node * label(Node * arg, Environment * environment)
 	if (arg == NULL || get_type(arg->value) != ID) return NULL;
 	if (arg->next == NULL) return NULL;
 	Node * val = (Node *) arg->next;
-
-	Variable * variable = new(Variable, VARIABLE);
-	variable->name = arg->value;
-	variable->value = eval(val->value, environment);
-	variable->next = NULL;
-
-	if(environment->variables != NULL)
-	{
-		Variable * prev = environment->variables;
-		while (prev->next != NULL) prev = prev->next;
-		prev->next = variable;
-	}
-	else
-		environment->variables = variable;
+	add_variable(environment, arg->value, eval(val->value, environment));
 	return arg;
 }
 
