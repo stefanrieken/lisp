@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "lisp_parser.h"
+#include "lisp_primitives.h"
 #include "eval.h"
 #include "../tmmh/tmmh.h"
 
@@ -20,6 +21,8 @@ int main ()
 	Environment * root_env = (Environment *) allocate(sizeof(Environment), false);
 	root_env->parent = NULL;
 	root_env->variables = NULL;
+
+	register_primitives(root_env);
 
 	// Read, Eval, Print loop
 	Node * command = read();

@@ -37,6 +37,16 @@ int get_non_whitespace_char()
 	return c;
 }
 
+void skip_line()
+{
+	int c;
+	do
+	{
+		c = buffered_read();
+	}
+	while (c != -1 && c != '\n');
+}
+
 char * parse_label (int c)
 {
 	int size = 1;

@@ -7,8 +7,9 @@ typedef enum value_type {
 	INT,
 	STRING,
 	ID,
-	LAMBDA,
 	LIST,
+	LAMBDA,
+	SPECIAL,
 	ENVIRONMENT,
 	VARIABLE
 } ValueType;
@@ -28,6 +29,8 @@ typedef struct Node {
 	void * value;
 	void * next;
 } Node;
+
+typedef void * (* special_form) (Node * args, Environment * env);
 
 extern Variable * add_variable(Environment * environment, char * name, void * value);
 

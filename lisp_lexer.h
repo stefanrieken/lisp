@@ -5,4 +5,4 @@
 
 extern int get_non_whitespace_char();
 extern char * parse_label (int c);
-
+extern void skip_line();

@@ -18,17 +18,49 @@
 #include "lisp_lexer.h"
 #include "../tmmh/tmmh.h"
 
+#define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
+
+static inline void * allocate_type(int size, int type)
+{
+	void * bla = allocate(size, false);
+	set_type(bla, type);
+	return bla;
+}
+
 void * parse_value()
 {
 	int ch = get_non_whitespace_char();
+	if (ch == ';') {
+		skip_line();
+		ch = get_non_whitespace_char();
+	}
+
 	if (ch == '"')
 		return parse_string();
+	else if (ch == '\'')
+		return parse_quote();
 	else if (ch == '(')
 		return parse_list();
 	else if (ch != -1) {
 		return parse_label(ch);
 	}
 	return NULL;
+}
+
+Node * parse_quote()
+{
+	Node * node = new (Node, LIST);
+	void * quote = allocate(6, false);
+	set_type(quote, ID);
+	strcpy (quote, "quote");
+	node->value = quote;
+
+	Node * next = new (Node, LIST);
+	next->next = NULL;
+	next->value = parse_value();
+	node->next = next;
+
+	return node;
 }
 
 Node * parse_list()
@@ -38,8 +70,7 @@ Node * parse_list()
 	if (ch == ')') return NULL; // empty list
 	buffer_return(ch);
 
-	Node * pair = (Node *) allocate(sizeof(Node), false);
-	set_type(pair, LIST);
+	Node * pair = new (Node, LIST);
 
 	pair->value = parse_value();
 	ch = get_non_whitespace_char();

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "eval.h"
 #include "../tmmh/tmmh.h"
@@ -12,115 +13,18 @@ static inline void * allocate_type(int size, int type)
 	return bla;
 }
 
-static inline bool streq(char * str1, char * str2)
-{
-	return strcmp(str1, str2) == 0;
-}
-
 // 'label' == variable | function
-static Node * find_label(char * name, Environment * environment)
+static void * find_label(char * name, Environment * environment)
 {
 	Variable * var = environment->variables;
 	while (var != NULL)
 	{
-		if (streq(name, var->name)) return var->value;
+		if (strcmp(name, var->name) == 0) return var->value;
 		var = var->next;
 	}
+
+	if (environment->parent != NULL) return find_label(name, environment->parent);
 	return NULL;
-}
-
-static Node * find_function(char * name, Environment * environment)
-{
-	Node * val = find_label(name, environment);
-	if (val != NULL && get_type(val->value) == LAMBDA) return val;
-	else return NULL;
-}
-
-// We use the old-fashioned definition:
-// false == nil == empty list == null (?? !!)
-// true == anything else, including the argument as passed
-// N.B. of course this leaves ample room for null pointers
-// if we do not secure other methods to recognize this special value
-static void * atom(Node * arg)
-{
-	if (arg == NULL || get_type(arg->value) >= LIST) return NULL;
-	return arg->value;
-}
-
-// Only on atoms!
-// TODO: 1) check for type 2) return 'true' if both values are null (~= empty list)
-static void * eq(Node * lhs)
-{
-	if (lhs == NULL || get_type(lhs->value) >= LIST) return NULL;
-
-	Node * rhs = lhs->next;
-	if (rhs == NULL || get_type(rhs->value) >= LIST) return NULL;
-
-	if (streq((char *) lhs->value, (char *) rhs->value)) return lhs; // 'true'
-	return NULL; // 'false'
-}
-
-static void * car(Node * arg)
-{
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
-	Node * val = (Node *) arg->value;
-	return val->value;
-}
-
-static void * cdr(Node * arg)
-{
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
-	Node * val = (Node *) arg->value;
-	return val->next;
-}
-
-static Node * cons(Node * args, Environment * environment)
-{
-	if (args == NULL) return NULL;
-	if (args->next == NULL || get_type(args->next) != LIST) return NULL;
-	Node * next = (Node *) args->next;
-	Node * result = new (Node, LIST);
-	result->value = eval(args->value, environment);
-	result->next = eval(next->value, environment);
-	return result;
-}
-
-static Node * cond(Node * arg)
-{
-	// TODO
-	return arg;
-}
-
-static Node * lambda(Node * arg, Environment * environment)
-{
-	Node * node = new(Node, LIST);
-	node->value = environment;
-	set_type(node->value, LAMBDA);
-	node->next = arg;
-	return node;
-}
-
-static Node * label(Node * arg, Environment * environment)
-{
-	if (arg == NULL || get_type(arg->value) != ID) return NULL;
-	if (arg->next == NULL) return NULL;
-	Node * val = (Node *) arg->next;
-	add_variable(environment, arg->value, eval(val->value, environment));
-	return arg;
-}
-
-// This one is not usually quoted as a required primitive
-// but I can't for the life of me imagine how otherwise to
-// produce a list with evaluated contents with only the other
-// primitives mentioned above.
-static Node * list(Node * args, Environment * environment)
-{
-	if (args == NULL) return NULL;
-	Node * result = new(Node, LIST);
-	result->value = eval(args->value, environment);
-	result->next = list(args->next, environment);
-
-	return result;
 }
 
 // args contains the *expressions that result in the arg values after evaluation*
@@ -132,6 +36,8 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 
 	while (arg_names != NULL)
 	{
+		// TODO use add_variable
+
 		if (get_type(arg_names->value) != ID) return NULL;
 		Variable * arg = new(Variable,VARIABLE);
 		arg->name = (char *) arg_names->value;
@@ -156,24 +62,10 @@ void * eval (void * expression, Environment * environment)
 	if (type < ID) return expression;
 	if (type == ID) return find_label(expression, environment);
 
-	Node * node = (Node *) expression;
-	char * value = (char *) node->value;
-	Node * args = node->next;
-
-	if (streq(value, "atom")) return atom(args);
-	else if (streq(value, "eq")) return eq(args);
-	else if (streq(value, "car")) return car(args);
-	else if (streq(value, "cdr")) return cdr(args);
-	else if (streq(value, "cons")) return cons(args, environment);
-	else if (streq(value, "quote")) return args->value; // duh!
-	else if (streq(value, "cond")) return cond(args);
-	else if (streq(value, "lambda")) return lambda(args, environment);
-	else if (streq(value, "label")) return label(args, environment);
-	else if (streq(value, "list")) return list(args, environment);
-	else return apply(expression, environment);
+	return apply(expression, environment);
 }
 
-Node * apply (Node * expression, Environment * environment)
+void * apply (Node * expression, Environment * environment)
 {
 	if (expression == NULL || get_type(expression->value) != ID) return expression;
 
@@ -184,9 +76,20 @@ Node * apply (Node * expression, Environment * environment)
 	Node * arg_exps = expression->next;
 
 	// Analyze the function definition
-	Node * function = find_function(name, environment);
+	Node * function = find_label(name, environment);
+	if (function == NULL) {
+		printf ("can't find %s\n", name);
+		return NULL;
+	}
+	// TODO 1) does special belong in 'apply'? 2) here? 3) should it and lambda have type marker at same level?
+	if (get_type(function) == SPECIAL) {
+		special_form * form = (special_form *) function;
+		return (* form)(arg_exps, environment);
+	}
+	// else - lambda
+	if (function->value == NULL || get_type(function->value) != LAMBDA) return NULL;
+
 	// - environment
-	if (function == NULL || get_type(function->value) != LAMBDA) return NULL;
 	Environment * lambda_env = (Environment *) function->value;
 	// - arg names
 	Node * arg_names_list = function->next;
@@ -197,12 +100,11 @@ Node * apply (Node * expression, Environment * environment)
 	if (body_forms != NULL && get_type(body_forms->value) == STRING)
 		body_forms = body_forms->next; // skip def comment
 
-
 	Environment * function_env = extract_args(arg_names, arg_exps, lambda_env);
 	Node * result = NULL;
 	while (body_forms != NULL)
 	{
-		if (get_type(body_forms->value) != LIST) return NULL;
+		//if (get_type(body_forms->value) != LIST) return NULL;
 		result = eval(body_forms->value, function_env);
 		body_forms = body_forms->next;
 	}
