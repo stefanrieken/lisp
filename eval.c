@@ -27,6 +27,15 @@ static void * find_label(char * name, Environment * environment)
 	return NULL;
 }
 
+static Node * eval_and_chain(Node * arg_exps, Environment * lambda_env)
+{
+	if (arg_exps == NULL) return NULL;
+	Node * node = new(Node, LIST);
+	node->value = eval(arg_exps->value, lambda_env);
+	node->next = eval_and_chain(arg_exps->next, lambda_env);
+	return node;
+}
+
 // args contains the *expressions that result in the arg values after evaluation*
 static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment * lambda_env)
 {
@@ -34,20 +43,18 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 	function_env->parent = lambda_env;
 	function_env->variables = NULL;
 
-	while (arg_names != NULL)
+	while (arg_names != NULL && get_type(arg_names) == LIST)
 	{
-		// TODO use add_variable
-
 		if (get_type(arg_names->value) != ID) return NULL;
-		Variable * arg = new(Variable,VARIABLE);
-		arg->name = (char *) arg_names->value;
-		arg->value = eval(arg_exps->value, lambda_env);
-		// reverse insert is easier
-		arg->next = function_env->variables;
-		function_env->variables = arg;
+		add_variable(function_env, (char *) arg_names->value, eval(arg_exps->value, lambda_env));
 
 		arg_names = arg_names->next;
 		arg_exps = arg_exps->next;
+	}
+	if (arg_names != NULL)
+	{
+		// &rest remainder var in cdr
+		add_variable(function_env, (char *) arg_names, eval_and_chain(arg_exps, lambda_env));
 	}
 
 	return function_env;
