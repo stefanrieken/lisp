@@ -47,7 +47,7 @@ void skip_line()
 	while (c != -1 && c != '\n');
 }
 
-char * parse_label (int c)
+char * parse_label(int c)
 {
 	int size = 1;
 	char * result = (char *) allocate(size, false);
@@ -65,5 +65,25 @@ char * parse_label (int c)
 	result[size-1] = 0;
 	set_type(result, ID);
 	return result;
+}
+
+void * parse_label_or_number (int c, int radix)
+{
+	char * str = parse_label(c);
+	uint32_t result = 0;
+
+	int i=0;
+	while (str[i] != 0)
+	{
+		int intval = str[i++] - '0';
+		if (intval < 0 || intval >= radix) return str; // give up
+		result = (result * radix) + intval;
+	}
+
+	uint32_t * pointer = allocate(4, false);
+	set_type(pointer, INT);
+	(* pointer) = result;
+	
+	return pointer;
 }
 

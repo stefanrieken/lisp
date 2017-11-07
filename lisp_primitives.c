@@ -110,6 +110,63 @@ static void * quote (Node * args, Environment * environment)
 	return args->value;
 }
 
+// Simple math functions. These are really not 'special'
+// but this is a first implementation.
+static inline int32_t extract_op(Node * arg, Environment * env)
+{
+	return * (int32_t *) eval(arg->value, env);
+}
+
+static inline int32_t * envelop(int32_t val)
+{
+	int32_t * pointer = (int32_t *) allocate(4, false);
+	set_type(pointer, INT);
+	(* pointer) = val;
+	return pointer;
+}
+
+static void * add (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) + extract_op(args->next, env));
+}
+
+static void * subtract (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) - extract_op(args->next, env));
+}
+
+static void * multiply (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) * extract_op(args->next, env));
+}
+
+static void * divide (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) / extract_op(args->next, env));
+}
+
+static void * modulo (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) % extract_op(args->next, env));
+}
+
+static void * bitset (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) | (1 << extract_op(args->next, env)));
+}
+
+static void * bitclear (Node * args, Environment * env)
+{
+	if (args == NULL || args->next == NULL) return NULL;
+	return envelop(extract_op(args, env) & ~(1 << extract_op(args->next, env)));
+}
+
 static inline void * typify(special_form form)
 {
 	special_form * type = new (special_form, SPECIAL);
@@ -119,6 +176,7 @@ static inline void * typify(special_form form)
 
 void register_primitives(Environment * env)
 {
+	// The McCarthy functions
 	add_variable(env, "quote", typify(quote));
 	add_variable(env, "atom", typify(atom));
 	add_variable(env, "eq", typify(eq));
@@ -129,4 +187,12 @@ void register_primitives(Environment * env)
 	add_variable(env, "lambda", typify(lambda));
 	add_variable(env, "label", typify(label));
 	add_variable(env, "list", typify(list));
+	// Integer functions
+	add_variable(env, "+", typify(add));
+	add_variable(env, "-", typify(subtract));
+	add_variable(env, "*", typify(multiply));
+	add_variable(env, "/", typify(divide));
+	add_variable(env, "%", typify(modulo));
+	add_variable(env, "bitset", typify(bitset));
+	add_variable(env, "bitclear", typify(bitclear));
 }

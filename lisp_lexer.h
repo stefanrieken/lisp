@@ -4,5 +4,5 @@
 #include "parse_string.h"
 
 extern int get_non_whitespace_char();
-extern char * parse_label (int c);
+extern void * parse_label_or_number (int c, int radix);
 extern void skip_line();

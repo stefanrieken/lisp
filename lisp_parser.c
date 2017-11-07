@@ -42,7 +42,7 @@ void * parse_value()
 	else if (ch == '(')
 		return parse_list();
 	else if (ch != -1) {
-		return parse_label(ch);
+		return parse_label_or_number(ch, 10);
 	}
 	return NULL;
 }
@@ -124,6 +124,7 @@ void print_value(void * value)
 	int type = get_type(value);
 
 	if (type == LIST) print_list((Node *) value);
+	else if (type == INT) printf("%d", * ((int32_t *) value));
 	else if (type == ID) printf(value);
 	else if (type == STRING) printf("\"%s\"", (char *) value);
 	else if (type == LAMBDA) printf("lambda");
