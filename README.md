@@ -5,9 +5,16 @@ State
 It has most of the traditional logic primitives implemented. (But I have yet to do 'cond'.)
 
 This project is in the transition of using tmmh for its heap management and data typing.
-At the moment all words and values are treated as strings. You can enter them both as un-quoted
-words and quoted and escaped strings (i.e. foo and "ba\r\n").
-No integer functions have been implemented yet, and integers are words / strings like any other.
+It is intended to do manual GC flushing, but this part is not yet incorporated, so currently
+memory usage will just 'heap up'.
+
+Besides string values, this LISP supports integers at system pointer size. The idea is for it
+to be easily used for memory manipulation. Currently you can already e.g. say:
+
+	(label a "42")                    ; this is the antique McCarthy version of 'define'
+	(label b (value-at (address a)))  ; equivalent to (label b a)
+	b                                 ; evaluates to "42"
+	(address b)		          ; address of value; produces same pointer as (address a)
 
 Error handling
 --------------
@@ -46,11 +53,17 @@ Remember they initially tried to make an easier-to-understand Turing machine, no
 But it also goes to show why people call the macro functionality of LISP 'a great tool'.
 Personally I'm unsure whether hiding such dense syntax under a carpet of macros is an advertisement for any language.
 
-This very simple LISP has no macro support at the moment. Neither does it support the short form of 'quote' (= a single "'").
+This very simple LISP has no macro support at the moment.
 I did add a 'list' primitive which takes the biggest load off the above:
 
 	(label greet (lambda (x) (list "hello" x)))
 	(greet world)
 
-Notice that all these examples treat unknown identifiers as strings. Currently this is still allowed. If you want to be more purist about it, double-quote your strings.
+It is also already possible to directly use an anonymous function:
+
+	((lambda (x y) (list y x)) "world" "hello")
+
+Or even to use remainder args:
+
+	((lambda (x . y) (list (car y) (car (cdr y)))) "print" "hello" "world")
 

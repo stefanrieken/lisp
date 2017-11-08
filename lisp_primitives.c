@@ -44,15 +44,15 @@ static void * eq(Node * lhs, Environment * env)
 
 static void * car(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
-	Node * val = (Node *) arg->value;
+	if (arg == NULL) return NULL;
+	Node * val = (Node *) eval(arg->value, env);
 	return val->value;
 }
 
 static void * cdr(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
-	Node * val = (Node *) arg->value;
+	if (arg == NULL) return NULL;
+	Node * val = (Node *) eval(arg->value, env);
 	return val->next;
 }
 
@@ -87,8 +87,9 @@ static void * label(Node * arg, Environment * environment)
 	if (arg == NULL || get_type(arg->value) != ID) return NULL;
 	if (arg->next == NULL) return NULL;
 	Node * val = (Node *) arg->next;
-	add_variable(environment, arg->value, eval(val->value, environment));
-	return arg;
+	void * value = eval(val->value, environment);
+	add_variable(environment, arg->value, value);
+	return value;
 }
 
 // This one is not usually quoted as a required primitive
@@ -112,14 +113,16 @@ static void * quote (Node * args, Environment * environment)
 
 // Simple math functions. These are really not 'special'
 // but this is a first implementation.
-static inline int32_t extract_op(Node * arg, Environment * env)
+// 'intptr_t' is the 'int' that is of pointer width
+// (so on 64-bit machines it is 64-bit instead of 32)
+static inline intptr_t extract_op(Node * arg, Environment * env)
 {
-	return * (int32_t *) eval(arg->value, env);
+	return * (intptr_t *) eval(arg->value, env);
 }
 
-static inline int32_t * envelop(int32_t val)
+static inline intptr_t * envelop(intptr_t val)
 {
-	int32_t * pointer = (int32_t *) allocate(4, false);
+	intptr_t * pointer = (intptr_t *) allocate(4, false);
 	set_type(pointer, INT);
 	(* pointer) = val;
 	return pointer;
@@ -154,7 +157,7 @@ static void * modulo (Node * args, Environment * env)
 	if (args == NULL || args->next == NULL) return NULL;
 	return envelop(extract_op(args, env) % extract_op(args->next, env));
 }
-
+// bit-meddling things
 static void * bitset (Node * args, Environment * env)
 {
 	if (args == NULL || args->next == NULL) return NULL;
@@ -165,6 +168,23 @@ static void * bitclear (Node * args, Environment * env)
 {
 	if (args == NULL || args->next == NULL) return NULL;
 	return envelop(extract_op(args, env) & ~(1 << extract_op(args->next, env)));
+}
+
+static void * address (Node * args, Environment * env)
+{
+	intptr_t * address = allocate(sizeof (void *), false);
+	set_type(address, INT);
+	void * evalresult = eval(args->value, env);
+	(* address) = (intptr_t) (evalresult);
+	return address;
+}
+
+static void * value_at (Node * args, Environment * env)
+{
+	if (args == NULL) return NULL;
+
+	intptr_t * address = (intptr_t *) eval(args->value, env);
+	return (void *) * address;
 }
 
 static inline void * typify(special_form form)
@@ -195,4 +215,6 @@ void register_primitives(Environment * env)
 	add_variable(env, "%", typify(modulo));
 	add_variable(env, "bitset", typify(bitset));
 	add_variable(env, "bitclear", typify(bitclear));
+	add_variable(env, "address", typify(address));
+	add_variable(env, "value-at", typify(value_at));
 }

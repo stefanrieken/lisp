@@ -74,20 +74,17 @@ void * eval (void * expression, Environment * environment)
 
 void * apply (Node * expression, Environment * environment)
 {
-	if (expression == NULL || get_type(expression->value) != ID) return expression;
+	if (expression == NULL) return expression;
 
-	// Analyze the call
-	// -name
-	char * name = (char *) expression->value;
+	// Function definition
+	Node * function = eval(expression->value, environment); // find_label(name, environment);
+	if (function == NULL) {
+		printf ("can't find %s\n", (char *) expression->value); // TODO this isn't always just an ID!
+		return NULL;
+	}
 	// -arg expressions
 	Node * arg_exps = expression->next;
 
-	// Analyze the function definition
-	Node * function = find_label(name, environment);
-	if (function == NULL) {
-		printf ("can't find %s\n", name);
-		return NULL;
-	}
 	// TODO 1) does special belong in 'apply'? 2) here? 3) should it and lambda have type marker at same level?
 	if (get_type(function) == SPECIAL) {
 		special_form * form = (special_form *) function;

@@ -67,12 +67,20 @@ char * parse_label(int c)
 	return result;
 }
 
+// 'intptr_t' is the 'int' that is of pointer width
+// (so on 64-bit machines it is 64-bit instead of 32)
 void * parse_label_or_number (int c, int radix)
 {
 	char * str = parse_label(c);
-	uint32_t result = 0;
+	intptr_t result = 0;
+	int sign = 1;
 
 	int i=0;
+	if (str[i] == '-')
+	{
+		sign = -1;
+		i++;
+	}
 	while (str[i] != 0)
 	{
 		int intval = str[i++] - '0';
@@ -80,10 +88,10 @@ void * parse_label_or_number (int c, int radix)
 		result = (result * radix) + intval;
 	}
 
-	uint32_t * pointer = allocate(4, false);
+	intptr_t * pointer = allocate(4, false);
 	set_type(pointer, INT);
-	(* pointer) = result;
-	
+	(* pointer) = result * sign;
+
 	return pointer;
 }
 
