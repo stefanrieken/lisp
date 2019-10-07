@@ -85,8 +85,14 @@ void * apply (Node * expression, Environment * environment)
 	// -arg expressions
 	Node * arg_exps = expression->next;
 
+	int function_type = get_type(function);
+
+	// once more, gracefully handle data being invoked
+	if (function_type < ID) return function;
+	if (function_type == ID) return find_label(function->value, environment);
+
 	// TODO 1) does special belong in 'apply'? 2) here? 3) should it and lambda have type marker at same level?
-	if (get_type(function) == SPECIAL) {
+	if (function_type == SPECIAL) {
 		special_form * form = (special_form *) function;
 		return (* form)(arg_exps, environment);
 	}
