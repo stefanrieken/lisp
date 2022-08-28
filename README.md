@@ -2,7 +2,7 @@ This is another LISP parser research project, this time in C.
 
 State
 -----
-It has most of the traditional logic primitives implemented. (But I have yet to do 'cond'.)
+It has most of the traditional logic primitives implemented.
 
 This project is in the transition of using tmmh for its heap management and data typing.
 It is intended to do manual GC flushing, but this part is not yet incorporated, so currently
@@ -22,7 +22,7 @@ I have currently designed the built-in functions so that they return a useful va
 even if it's only echoing (part of) their inputs.
 Invalid input is currently silently refused by returning a NULL value in code,
 which is shown as an empty list.
-In part, this reflects the concept of 'true' being any value but NIL and NIL being the empty list.
+In part, this reflects the concept of 'true' being any value but NIL; and NIL being the empty list.
 
 But be aware that errors can currently silently be converted into empty lists,
 which might even be successfully processed further down. I'm sure that this system won't hold in the long run,
@@ -66,4 +66,8 @@ It is also already possible to directly use an anonymous function:
 Or even to use remainder args:
 
 	((lambda (x . y) (list (car y) (car (cdr y)))) "print" "hello" "world")
+
+And pair notation in general:
+
+	'("hello" . ("world" . ()))
 

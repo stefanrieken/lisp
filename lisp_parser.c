@@ -128,6 +128,7 @@ void print_value(void * value)
 	else if (type == ID) printf("%s", (char *) value);
 	else if (type == STRING) printf("\"%s\"", (char *) value);
 	else if (type == LAMBDA) printf("lambda");
+	else if (type == SPECIAL) printf("<fn-address>");
 	else printf("unknown type %d %s", type, (char *) value);
 }
 

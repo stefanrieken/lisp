@@ -6,7 +6,7 @@ typedef enum value_type {
 	UNTYPED,
 	INT,
 	STRING,
-	ID,
+	ID, // Label
 	LIST,
 	LAMBDA,
 	SPECIAL,

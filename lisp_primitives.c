@@ -31,6 +31,7 @@ static void * atom(Node * arg, Environment * env)
 
 // Only on atoms!
 // TODO: 1) check for type 2) return 'true' if both values are null (~= empty list)
+// TODO: 3) *EVALUATE* lhs and rhs! 4) uhh, are all our values trings??
 static void * eq(Node * lhs, Environment * env)
 {
 	if (lhs == NULL || get_type(lhs->value) >= LIST) return NULL;
@@ -69,8 +70,19 @@ static void * cons(Node * args, Environment * environment)
 
 static void * cond(Node * arg, Environment * env)
 {
-	// TODO
-	return arg;
+	Node * result = NULL;
+	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
+	Node * conds = arg->value;
+	if (conds== NULL || get_type(conds->value) != LIST) return NULL;
+
+	while (conds != NULL) {
+		if (eval(conds->value, env) != NULL && conds->next != NULL) {
+			result = eval(conds->next, env);
+		}
+		conds = conds->next; // skip from cond to expr
+		conds = conds->next; // skip from expr to next cond
+	}
+	return result;
 }
 
 static void * lambda(Node * arg, Environment * environment)
@@ -112,7 +124,7 @@ static void * quote (Node * args, Environment * environment)
 }
 
 // Simple math functions. These are really not 'special'
-// but this is a first implementation.
+// but they are 'primitive'; and this is a first implementation.
 // 'intptr_t' is the 'int' that is of pointer width
 // (so on 64-bit machines it is 64-bit instead of 32)
 static inline intptr_t extract_op(Node * arg, Environment * env)
