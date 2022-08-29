@@ -22,7 +22,7 @@
 
 static inline void * allocate_type(int size, int type)
 {
-	void * bla = allocate(size, false);
+	void * bla = allocate(memory, size, false);
 	set_type(bla, type);
 	return bla;
 }
@@ -50,8 +50,7 @@ void * parse_value()
 Node * parse_quote()
 {
 	Node * node = new (Node, LIST);
-	void * quote = allocate(6, false);
-	set_type(quote, ID);
+	void * quote = allocate_type(6, ID);
 	strcpy (quote, "quote");
 	node->value = quote;
 
@@ -98,8 +97,7 @@ void print_list_body(Node * list)
 		if (get_type(list->next) == LIST) {
 			printf(" ");
 			print_list_body((Node *) list->next);
-		}
-		else {
+		} else {
 			printf(" . ");
 			print_value(list->next);
 		}
@@ -128,7 +126,8 @@ void print_value(void * value)
 	else if (type == ID) printf("%s", (char *) value);
 	else if (type == STRING) printf("\"%s\"", (char *) value);
 	else if (type == LAMBDA) printf("lambda");
-	else if (type == SPECIAL) printf("<fn-address>");
+	else if (type == SPECIAL) printf("<special>");
+  else if (type == PRIMITIVE) printf("<fn-primitive>");
 	else printf("unknown type %d %s", type, (char *) value);
 }
 

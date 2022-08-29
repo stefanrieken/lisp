@@ -18,7 +18,7 @@ static inline int replace_escapes(int c)
 char * parse_string()
 {
 	int size = 1;
-	char * result = (char *) allocate(size, false);
+	char * result = (char *) allocate(memory, size, false);
 	set_type(result, STRING);
 	int c = buffered_read();
 
@@ -34,7 +34,7 @@ char * parse_string()
 		if (c != -1)
 		{
 			result[size-1] = c;
-			result = reallocate(result, ++size, false);
+			result = reallocate(memory, result, ++size, false);
 			c = buffered_read();
 		}
 	}
@@ -44,5 +44,3 @@ char * parse_string()
 	if (c != '"') return NULL; // string was not properly closed within length of buffer
 	else return result;
 }
-
-

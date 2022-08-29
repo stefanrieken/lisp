@@ -10,6 +10,7 @@ typedef enum value_type {
 	LIST,
 	LAMBDA,
 	SPECIAL,
+  PRIMITIVE,
 	ENVIRONMENT,
 	VARIABLE
 } ValueType;
@@ -31,8 +32,9 @@ typedef struct Node {
 } Node;
 
 typedef void * (* special_form) (Node * args, Environment * env);
+typedef void * (* primitive_form) (Node * args, Environment * env);
 
 extern Variable * add_variable(Environment * environment, char * name, void * value);
 
+extern void * memory;
 #endif
-

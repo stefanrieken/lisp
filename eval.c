@@ -8,7 +8,7 @@
 
 static inline void * allocate_type(int size, int type)
 {
-	void * bla = allocate(size, false);
+	void * bla = allocate(memory, size, false);
 	set_type(bla, type);
 	return bla;
 }
@@ -95,7 +95,11 @@ void * apply (Node * expression, Environment * environment)
 	if (function_type == SPECIAL) {
 		special_form * form = (special_form *) function;
 		return (* form)(arg_exps, environment);
-	}
+	} else if (function_type == PRIMITIVE) {
+    // for now same as above
+    primitive_form * form = (primitive_form *) function;
+		return (* form)(arg_exps, environment);
+  }
 	// else - lambda
 	if (function->value == NULL || get_type(function->value) != LAMBDA) return NULL;
 
@@ -121,4 +125,3 @@ void * apply (Node * expression, Environment * environment)
 
 	return result;
 }
-

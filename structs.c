@@ -6,7 +6,7 @@
 
 static inline void * allocate_type(int size, int type)
 {
-	void * bla = allocate(size, false);
+	void * bla = allocate(memory, size, false);
 	set_type(bla, type);
 	return bla;
 }
@@ -28,4 +28,3 @@ Variable * add_variable(Environment * environment, char * name, void * value)
 		environment->variables = variable;
 	return variable;
 }
-

@@ -1,7 +1,7 @@
 // LISP style input lexer
 // Note: returns the individual words but doesn't categorize them
 // So after parsing, you can't tell a label from a string(!)
-// Also, the lexer doesn't convert 
+// Also, the lexer doesn't convert
 
 #include "lisp_lexer.h"
 #include "structs.h"
@@ -15,14 +15,6 @@ static inline bool is_whitespace (int c)
 static inline bool is_bracket (int c)
 {
 	return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
-}
-
-char * parse_bracket(int c)
-{
-	char * value = (char *) allocate(2, false);
-	value[0] = c;
-	value[1] = 0;
-	return value;
 }
 
 int get_non_whitespace_char()
@@ -50,12 +42,12 @@ void skip_line()
 char * parse_label(int c)
 {
 	int size = 1;
-	char * result = (char *) allocate(size, false);
+	char * result = (char *) allocate(memory, size, false);
 
 	do
 	{
 		result[size-1] = (char) c;
-		result = reallocate(result, ++size, false);
+		result = reallocate(memory, result, ++size, false);
 		c = buffered_read();
 	}
 	while (c != -1 && !is_bracket(c) && !is_whitespace(c));
@@ -88,10 +80,9 @@ void * parse_label_or_number (int c, int radix)
 		result = (result * radix) + intval;
 	}
 
-	intptr_t * pointer = allocate(4, false);
+	intptr_t * pointer = allocate(memory, 4, false);
 	set_type(pointer, INT);
 	(* pointer) = result * sign;
 
 	return pointer;
 }
-
