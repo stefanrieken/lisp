@@ -86,15 +86,15 @@ static void * cond(Node * arg, Environment * env)
 {
  	Node * result = NULL;
  	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
- 	Node * conds = arg->value;
- 	if (conds== NULL || get_type(conds->value) != LIST) return NULL;
 
- 	while (conds != NULL) {
- 		if (eval(conds->value, env) != NULL && conds->next != NULL) {
- 			result = eval(conds->next, env);
+ 	while (arg != NULL) {
+	 	Node * cond = arg->value;
+	 	if (cond== NULL || get_type(cond->value) != LIST) return NULL;
+
+ 		if (eval(cond->value, env) != NULL && cond->next != NULL) {
+ 			result = eval(cond->next, env);
  		}
- 		conds = conds->next; // skip from cond to expr
- 		conds = conds->next; // skip from expr to next cond
+ 		arg = arg->next;
  	}
  	return result;
 }
