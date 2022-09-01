@@ -10,7 +10,7 @@ typedef enum value_type {
 	LIST,
 	LAMBDA,
 	SPECIAL,
-  PRIMITIVE,
+	PRIMITIVE,
 	ENVIRONMENT,
 	VARIABLE
 } ValueType;

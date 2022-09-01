@@ -19,11 +19,15 @@ static void * find_label(char * name, Environment * environment)
 	Variable * var = environment->variables;
 	while (var != NULL)
 	{
-		if (strcmp(name, var->name) == 0) return var->value;
+		if (strcmp(name, var->name) == 0) {
+			return var->value;
+		}
 		var = var->next;
 	}
 
-	if (environment->parent != NULL) return find_label(name, environment->parent);
+	if (environment->parent != NULL) {
+		return find_label(name, environment->parent);
+	}
 	return NULL;
 }
 
@@ -43,7 +47,7 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 	function_env->parent = lambda_env;
 	function_env->variables = NULL;
 
-	while (arg_names != NULL && get_type(arg_names) == LIST)
+	while (arg_names != NULL && arg_exps != NULL && get_type(arg_names) == LIST)
 	{
 		if (get_type(arg_names->value) != ID) return NULL;
 		add_variable(function_env, (char *) arg_names->value, eval(arg_exps->value, lambda_env));
@@ -51,7 +55,7 @@ static Environment * extract_args(Node * arg_names, Node * arg_exps, Environment
 		arg_names = arg_names->next;
 		arg_exps = arg_exps->next;
 	}
-	if (arg_names != NULL)
+	if (arg_names != NULL && get_type(arg_names) == ID)
 	{
 		// &rest remainder var in cdr
 		add_variable(function_env, (char *) arg_names, eval_and_chain(arg_exps, lambda_env));
@@ -76,8 +80,9 @@ void * apply (Node * expression, Environment * environment)
 {
 	if (expression == NULL) return expression;
 
-	// Function definition
-	Node * function = eval(expression->value, environment); // find_label(name, environment);
+	// Function definition. Eval'ing this to function selection by expression: ((foo x) y)
+	void * function = eval(expression->value, environment); // find_label(name, environment);
+
 	if (function == NULL) {
 		printf ("can't find %s\n", (char *) expression->value); // TODO this isn't always just an ID!
 		return NULL;
@@ -88,8 +93,13 @@ void * apply (Node * expression, Environment * environment)
 	int function_type = get_type(function);
 
 	// once more, gracefully handle data being invoked
+	if (function_type == ID) {
+		// most likely scenario:
+		// - we had an expression for a function definition: ((foo x) y)
+		// - this eval'ed (above) to an ID
+		return find_label((char *) function, environment);
+	}
 	if (function_type < ID) return function;
-	if (function_type == ID) return find_label(function->value, environment);
 
 	// TODO 1) does special belong in 'apply'? 2) here? 3) should it and lambda have type marker at same level?
 	if (function_type == SPECIAL) {
@@ -101,13 +111,17 @@ void * apply (Node * expression, Environment * environment)
 		return (* form)(arg_exps, environment);
   }
 	// else - lambda
-	if (function->value == NULL || get_type(function->value) != LAMBDA) return NULL;
+	Node * f = (Node *) function;
+	if (f->value == NULL || get_type(f->value) != LAMBDA) return NULL;
 
 	// - environment
-	Environment * lambda_env = (Environment *) function->value;
+	Environment * lambda_env = (Environment *) f->value;
+
 	// - arg names
-	Node * arg_names_list = function->next;
-	if (arg_names_list == NULL || get_type(arg_names_list->value) != LIST) return NULL;
+	Node * arg_names_list = f->next;
+	if (arg_names_list == NULL) {
+		return NULL;
+	}
 	Node * arg_names = arg_names_list->value;
 	// - body
 	Node * body_forms = arg_names_list->next;

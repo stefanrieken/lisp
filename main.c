@@ -22,10 +22,11 @@ int main ()
 
 	memory = tmmh_init(5000, pifs);
 	Environment * root_env = (Environment *) allocate(memory, sizeof(Environment), false);
+
 	root_env->parent = NULL;
 	root_env->variables = NULL;
 
-  register_specials(root_env);
+	register_specials(root_env);
 	register_primitives(root_env);
 
 	// Read, Eval, Print loop
