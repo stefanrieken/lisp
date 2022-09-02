@@ -94,17 +94,15 @@ On special forms
 The term special / fundamental form may either refer to the most basic functional
 building blocks required to construct a LISP environment; or only to those
 that need special (=conditional) evaluation of their arguments during runtime.
+McCarthy's list explores the former, and thus includes regular-execution
+primitives like "atom" and "eq".
 
-McCarthy's list contains both, as functions like "atom" and "eq" evaluate like
-all other functions. In contrast, the core of functions marked as "fundamental
-forms" in Scheme are only those that require altered evaluation, some of them
-clearly superfluous to any minimum required required set; other likely required
-functions are only found within the bigger bulk of "standard procedures".
-
-I do not intend to build a full R5RS as a consequence; instead, it may be of
-interest to implement Scheme's primitive equivalents of McCarthy's functions
-(e.g. let instead of label, if instead of cond) just to evaluate their
-respecive merits.
+John Cowan identifies an even smaller subset in Scheme terms: quote, if, lambda
+and set! - where the terser 'if' is interchangeable with the kitchen-sink
+'cond', and 'set!' is like 'label'. What is remarkable is that he once again
+included the state-changing option (earmarked in Scheme by the exclamation
+mark), but on the other hand nothing for eq or even atom. Nevertheless, it
+provides a good point of departure for an implementation.
 
 On Macros
 ---------

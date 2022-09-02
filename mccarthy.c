@@ -54,8 +54,8 @@ static void * eq(Node * lhs, Environment * env)
   else if ((*(intptr_t*) lhsval) == (*(intptr_t*) rhsval))
     return lhsval; // 'true'
 
- 	return NULL; // 'false'
- }
+  return NULL; // 'false'
+}
 
 static void * car(Node * arg, Environment * env)
 {
@@ -88,8 +88,10 @@ static void * cond(Node * arg, Environment * env)
 
 	while (arg != NULL) {
 	 	Node * cond = arg->value;
-	 	if (cond== NULL || get_type(cond->value) != LIST) return NULL;
+	 	if (cond== NULL) return NULL;
 
+		// We first check the boolean outcome, where true is defined as "not null";
+		// Then we just check if the associated code block is actually there :)
 		if (eval(cond->value, env) != NULL && cond->next != NULL) {
 			Node * expr = cond->next;
 			Node * result = eval(expr->value, env);
@@ -120,9 +122,8 @@ static void * label(Node * arg, Environment * environment)
 }
 
 // This one is not usually quoted as a required primitive
-// but I can't for the life of me imagine how otherwise to
-// produce a list with evaluated contents with only the other
-// primitives mentioned above.
+// but it makes producing a list with evaluated contents 
+// a lot easier compared to repeated cons'ing.
 static void * list(Node * args, Environment * environment)
 {
 	if (args == NULL || args->value == NULL) return NULL;
@@ -134,7 +135,7 @@ static void * list(Node * args, Environment * environment)
 		result->next = list(args->next, environment);
 	}
  	return result;
- }
+}
 
 static void * quote (Node * args, Environment * environment)
 {

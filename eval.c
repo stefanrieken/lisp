@@ -106,10 +106,10 @@ void * apply (Node * expression, Environment * environment)
 		special_form * form = (special_form *) function;
 		return (* form)(arg_exps, environment);
 	} else if (function_type == PRIMITIVE) {
-    // for now same as above
-    primitive_form * form = (primitive_form *) function;
-		return (* form)(arg_exps, environment);
-  }
+		// as above, but "as a service" we now pre-evaluate all args
+		primitive_form * form = (primitive_form *) function;
+		return (* form)(eval_and_chain(arg_exps, environment), environment);
+	}
 	// else - lambda
 	Node * f = (Node *) function;
 	if (f->value == NULL || get_type(f->value) != LAMBDA) return NULL;
