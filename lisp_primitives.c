@@ -118,5 +118,5 @@ void register_primitives(Environment * env)
 	add_variable(env, "bitclear", typify(bitclear));
 	add_variable(env, "address", typify(address));
 	add_variable(env, "value-at", typify(value_at));
-  add_variable(env, "gc-collect", typify(gc_collect));
+	add_variable(env, "gc-collect", typify(gc_collect));
 }

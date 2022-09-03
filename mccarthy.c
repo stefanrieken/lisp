@@ -1,3 +1,6 @@
+/**
+ * Defines a set of special forms loosely styled after McCarthy's 1960 LISP paper.
+ */
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
@@ -19,9 +22,6 @@ static inline bool streq(char * str1, char * str2)
 	return strcmp(str1, str2) == 0;
 }
 
-/**
- * These are McCarthy's special forms.
- */
 
 // We use the old-fashioned definition:
 // false == nil == empty list == null (?? !!)

@@ -1,3 +1,6 @@
+/**
+ * Defines a set of special forms loosely styled after Scheme.
+ */
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>

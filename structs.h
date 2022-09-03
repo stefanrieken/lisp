@@ -2,6 +2,8 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#include <stdbool.h>
+
 typedef enum value_type {
 	UNTYPED,
 	INT,
@@ -35,6 +37,7 @@ typedef void * (* special_form) (Node * args, Environment * env);
 typedef void * (* primitive_form) (Node * args, Environment * env);
 
 extern Variable * add_variable(Environment * environment, char * name, void * value);
+extern Variable * set_variable(Environment * environment, char * name, void * value, bool recurse);
 
 extern void * memory;
 #endif

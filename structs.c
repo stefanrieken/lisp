@@ -1,5 +1,6 @@
 #include "structs.h"
 #include <stddef.h>
+#include <string.h>
 #include "../tmmh/tmmh.h"
 
 #define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
@@ -27,4 +28,21 @@ Variable * add_variable(Environment * environment, char * name, void * value)
 	else
 		environment->variables = variable;
 	return variable;
+}
+
+Variable * set_variable(Environment * environment, char * name, void * value, bool recurse)
+{
+	Variable * var = environment->variables;
+	while (var != NULL && strcmp(var->name, name) != 0) {
+		var = var->next;
+	}
+	
+	if (var != NULL) {
+		var->value = value;
+		return var;
+	} else if (recurse && environment->parent != NULL) {
+		set_variable(environment->parent, name, value, recurse);
+	}
+	// else
+	return NULL;
 }
