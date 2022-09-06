@@ -1,4 +1,4 @@
-OBJECTS=lisp_parser.o lisp_lexer.o parse_string.o buffered_read.o eval.o structs.o lisp_primitives.o
+OBJECTS=parse.o parse_string.o print.o eval.o structs.o lisp_primitives.o
 CFLAGS=-Wall -Wunused
 
 all: lisp scheme

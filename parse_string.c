@@ -1,6 +1,8 @@
 #include "parse_string.h"
 #include "../tmmh/tmmh.h"
+
 #include "structs.h"
+#include "parse.h"
 
 char * escapes = "nrtf";
 char * replacements = "\n\r\t\f";

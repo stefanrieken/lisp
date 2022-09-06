@@ -1,6 +1,8 @@
 #include <stdio.h>
 
-#include "lisp_parser.h"
+#include "structs.h"
+#include "parse.h"
+#include "print.h"
 #include "lisp_primitives.h"
 #include "special.h"
 #include "eval.h"
