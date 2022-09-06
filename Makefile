@@ -6,9 +6,9 @@ all: lisp scheme
 %.o: %.c
 	gcc $(CFLAGS) -c $< -o $@
 
-lisp: $(OBJECTS)
+lisp: $(OBJECTS) scheme.c
 	gcc $(CFLAGS) $(OBJECTS) mccarthy.c main.c ../tmmh/libtmmh.a -o lisp
-scheme: $(OBJECTS)
+scheme: $(OBJECTS) scheme.c
 	gcc $(CFLAGS) $(OBJECTS) scheme.c main.c ../tmmh/libtmmh.a -o scheme
 
 clean:

@@ -30,7 +30,7 @@ static inline void * allocate_type(int size, int type)
 void * parse_value()
 {
 	int ch = get_non_whitespace_char();
-	if (ch == ';') {
+	while (ch == ';') {
 		skip_line();
 		ch = get_non_whitespace_char();
 	}

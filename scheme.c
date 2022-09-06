@@ -24,14 +24,13 @@ static inline bool streq(char * str1, char * str2)
 
 static void * iff(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
+	if (arg == NULL || arg->next == NULL) return NULL;
 
-	// We first check the boolean outcome, where true is defined as "not null";
-	// Then we just check if the associated code block is actually there :)
-	if (eval(arg->value, env) != NULL && arg->next != NULL) {
-		Node * expr = arg->next;
-		Node * result = eval(expr->value, env);
-		return result;
+	// This is the actual if-statement evaluation and if-else block selection
+	Node * expr = (eval(arg->value, env) != NULL) ? arg->next : ((Node *) arg->next)->next;
+	
+	if (expr != NULL) {
+		return eval(expr->value, env);
 	}
 
 	return NULL;
@@ -51,7 +50,8 @@ static void * set(Node * arg, Environment * environment)
 {
  	if (arg == NULL) return NULL;
  	void * name = eval(arg->value, environment);
- 	if (get_type(arg->value) != ID) return NULL;
+ 	if (name == NULL) return NULL;
+ 	if (get_type(name) != ID) return NULL;
 
  	if (arg->next == NULL) return NULL;
  	Node * val = (Node *) arg->next;
