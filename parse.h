@@ -5,7 +5,9 @@ extern int get_non_whitespace_char();
 extern void * parse_label_or_number (int c, int radix);
 extern void skip_line();
 
-extern void * parse_value();
-extern Node * parse_list();
+extern Node * parse_list(char opening_bracket);
 extern Node * parse_quote();
+
+// The common entry point:
+extern void * parse_value();
 

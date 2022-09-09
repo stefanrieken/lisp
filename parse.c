@@ -5,10 +5,17 @@
 #include "../tmmh/tmmh.h"
 
 #include "structs.h"
-#include "parse_string.h"
 #include "parse.h"
 
 #define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
+
+/**
+ * Support for a 1 character read-ahead buffer.
+ *
+ * This is possible because the syntax uses no multiple-character keywords.
+ * The alternative is to parse around the character read.
+ * (We do parse it forward sometimes, but not back.)
+ */
 
 int char_buffer = -2;
 
@@ -30,6 +37,10 @@ void buffer_return(int c)
 	char_buffer = c;
 }
 
+/**
+ * Category checks.
+ */
+
 static inline bool is_whitespace (int c)
 {
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
@@ -39,6 +50,10 @@ static inline bool is_bracket (int c)
 {
 	return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
 }
+
+/**
+ * Skip-ahead functions.
+ */
 
 int get_non_whitespace_char()
 {
@@ -62,6 +77,60 @@ void skip_line()
 	while (c != -1 && c != '\n');
 }
 
+/**
+ * Parse a double-quote delimited string, allowing for common C-style escape codes.
+ */
+char * escapes = "nrtf";
+char * replacements = "\n\r\t\f";
+int escapes_length = 4;
+
+static inline int replace_escapes(int c)
+{
+	for (int i=0; i<escapes_length; i++)
+		if (escapes[i] == c) return replacements[i];
+
+	return c;
+}
+
+// assumes the starting '"' was already parsed
+char * parse_string()
+{
+	int size = 1;
+	char * result = (char *) allocate(memory, size, false);
+	set_type(result, STRING);
+	int c = buffered_read();
+
+	while (c != -1 && c != '"')
+	{
+		if (c == '\\')
+		{
+			c = buffered_read();
+			if (c != -1)
+				c = replace_escapes(c);
+		}
+
+		if (c != -1)
+		{
+			result[size-1] = c;
+			result = reallocate(memory, result, ++size, false);
+			c = buffered_read();
+		}
+	}
+
+	result[size-1] = 0;
+
+	if (c != '"') return NULL; // string was not properly closed within length of buffer
+	else return result;
+}
+/**
+ * Parse a string of characters not surrounded by quotes.
+ *
+ * LISP labels have very little limitations, in part to make a point about
+ * how something like a number is essentially just another abstract symbol.
+ *
+ * We make good use of this idea by parsing integers as a label first,
+ * before converting them to actual integers.
+ */
 char * parse_label(int c)
 {
 	int size = 1;
@@ -82,8 +151,11 @@ char * parse_label(int c)
 	return result;
 }
 
-// 'intptr_t' is the 'int' that is of pointer width
-// (so on 64-bit machines it is 64-bit instead of 32)
+/**
+ * Call parse_label first, and then decide wheter we can represent the
+ * outcome as an integer. The 'radix' being the base, this function could
+ * also be used to parse e.g. hexadecimal numbers (base 16).
+ */ 
 void * parse_label_or_number (int c, int radix)
 {
 	char * str = parse_label(c);
@@ -117,26 +189,11 @@ static inline void * allocate_type(int size, int type)
 	return bla;
 }
 
-void * parse_value()
-{
-	int ch = get_non_whitespace_char();
-	while (ch == ';') {
-		skip_line();
-		ch = get_non_whitespace_char();
-	}
-
-	if (ch == '"')
-		return parse_string();
-	else if (ch == '\'')
-		return parse_quote();
-	else if (ch == '(')
-		return parse_list();
-	else if (ch != -1) {
-		return parse_label_or_number(ch, 10);
-	}
-	return NULL;
-}
-
+/**
+ * Parse the shorthand quote.
+ * I'm sure that this ought to be a common label plus a LISP macro,
+ * but pending a macro system it is of some value to have it built in.
+ */
 Node * parse_quote()
 {
 	Node * node = new (Node, LIST);
@@ -152,11 +209,18 @@ Node * parse_quote()
 	return node;
 }
 
-Node * parse_list()
+/**
+ * Parse a LISP list; with support for alternative brackets.
+ * Just tell what opening bracket you have already parsed.
+ */
+Node * parse_list(char opening_bracket)
 {
-	// '(' is already read here
+	// the opening bracket is already here.
+	
+	char closing_bracket = opening_bracket + (opening_bracket == '(' ? 1 : 2); // see ASCII
+
 	int ch = get_non_whitespace_char();
-	if (ch == ')') return NULL; // empty list
+	if (ch == closing_bracket) return NULL; // empty list
 	buffer_return(ch);
 
 	Node * pair = new (Node, LIST);
@@ -175,8 +239,33 @@ Node * parse_list()
 		return pair;
 	} else {
 		buffer_return(ch);
-		pair->next = parse_list();
+		pair->next = parse_list(opening_bracket);
 		return pair;
 	}
+}
+
+/**
+ * Parse any valid LISP value.
+ *
+ * Normally you would call either this function or parse_list to get things going.
+ */
+void * parse_value()
+{
+	int ch = get_non_whitespace_char();
+	while (ch == ';') {
+		skip_line();
+		ch = get_non_whitespace_char();
+	}
+
+	if (ch == '"')
+		return parse_string();
+	else if (ch == '\'')
+		return parse_quote();
+	else if (is_bracket(ch))
+		return parse_list(ch);
+	else if (ch != -1) {
+		return parse_label_or_number(ch, 10);
+	}
+	return NULL;
 }
 

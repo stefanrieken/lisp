@@ -1,5 +1,5 @@
-OBJECTS=parse.o parse_string.o print.o eval.o structs.o lisp_primitives.o
-CFLAGS=-Wall -Wunused
+OBJECTS=parse.o print.o eval.o structs.o lisp_primitives.o
+CFLAGS=-Wall -Wunused -Os
 
 all: lisp scheme
 
