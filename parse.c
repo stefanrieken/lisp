@@ -46,9 +46,14 @@ static inline bool is_whitespace (int c)
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-static inline bool is_bracket (int c)
+static inline bool is_opening_bracket (int c)
 {
-	return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
+	return c == '(' || c == '{'  || c == '[';
+}
+
+static inline bool is_closing_bracket (int c)
+{
+	return c == ')' || c == '}' || c == ']';
 }
 
 /**
@@ -142,7 +147,7 @@ char * parse_label(int c)
 		result = reallocate(memory, result, ++size, false);
 		c = buffered_read();
 	}
-	while (c != -1 && !is_bracket(c) && !is_whitespace(c));
+	while (c != -1 && !is_opening_bracket(c) && !is_closing_bracket(c) && !is_whitespace(c));
 
 	if (c != -1) buffer_return(c);
 
@@ -261,7 +266,7 @@ void * parse_value()
 		return parse_string();
 	else if (ch == '\'')
 		return parse_quote();
-	else if (is_bracket(ch))
+	else if (is_opening_bracket(ch))
 		return parse_list(ch);
 	else if (ch != -1) {
 		return parse_label_or_number(ch, 10);

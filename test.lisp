@@ -4,5 +4,5 @@
 (label a (lambda (x) (list "Message from fn a:" x)))
 (label b (lambda (x) (list "Message from fn b:" x)))
 (a "hi")
-((cond ((eq 1 2) a) ((eq 1 1) b)) "bye")
+((cond ([eq 1 2] a) ([eq 1 1] b)) "bye")
 
