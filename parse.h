@@ -8,6 +8,8 @@ extern void skip_line();
 extern Node * parse_list(char opening_bracket);
 extern Node * parse_quote();
 
-// The common entry point:
+/** Set this value first (may be to stdin) */
+void read_from(FILE * file);
+/** Then call this one, which calls the ones above. */
 extern void * parse_value();
 

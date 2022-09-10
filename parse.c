@@ -17,7 +17,14 @@
  * (We do parse it forward sometimes, but not back.)
  */
 
+FILE * _file;
+
 int char_buffer = -2;
+
+void read_from(FILE * file)
+{
+	_file = file;
+}
 
 int buffered_read()
 {
@@ -27,7 +34,7 @@ int buffered_read()
 		c = char_buffer;
 		char_buffer = -2;
 	}
-	else c = getchar();
+	else c = fgetc(_file);
 
 	return c;
 }

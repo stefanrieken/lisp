@@ -6,10 +6,10 @@ all: lisp scheme
 %.o: %.c
 	gcc $(CFLAGS) -c $< -o $@
 
-lisp: $(OBJECTS) scheme.c
-	gcc $(CFLAGS) $(OBJECTS) mccarthy.c main.c ../tmmh/libtmmh.a -o lisp
-scheme: $(OBJECTS) scheme.c
-	gcc $(CFLAGS) $(OBJECTS) scheme.c main.c ../tmmh/libtmmh.a -o scheme
+lisp: $(OBJECTS) mccarthy.o main.o
+	gcc $(CFLAGS) $(OBJECTS) mccarthy.o main.o ../tmmh/libtmmh.a -o lisp
+scheme: $(OBJECTS) scheme.o main.o
+	gcc $(CFLAGS) $(OBJECTS) scheme.o main.o ../tmmh/libtmmh.a -o scheme
 
 clean:
 	rm -rf lisp scheme *.o

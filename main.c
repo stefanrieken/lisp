@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "structs.h"
 #include "parse.h"
@@ -10,15 +12,21 @@
 
 void * memory;
 
-static void * read()
+int main (int argc, char ** argv)
 {
-	return parse_value();
-}
+	FILE * source = stdin;
+	if (argc > 1) {
+		source = fopen(argv[1], "rb");
+		if (source == NULL) {
+			printf("Could not open file: %s\n", argv[1]);
+			exit(-1);
+		}
+	}
 
-int main ()
-{
-	printf("Welcome to LISP.\n");
-	printf("^D to exit.\n");
+	if (isatty(fileno(source))) {
+		printf("Welcome to LISP.\n");
+		printf("^D to exit.\n");
+	}
 
 	pif pifs[] = {pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none};
 
@@ -31,12 +39,16 @@ int main ()
 	register_specials(root_env);
 	register_primitives(root_env);
 
+	read_from(source);
+
 	// Read, Eval, Print loop
-	Node * command = read();
+	Node * command = parse_value();
 	while (command != NULL)
 	{
 		Node * result = eval(command, root_env);
 		println_value(result);
-		command = read();
+		command = parse_value();
 	}
+	
+	fclose(source);
 }
