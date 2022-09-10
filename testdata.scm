@@ -3,5 +3,5 @@
 
 
 (if [eq 2 2]
-	{(lambda (x) (list "Deze test is" x)) "geslaagd"}
+	{(lambda (x) (list "This test is" x)) "successful!"}
 )

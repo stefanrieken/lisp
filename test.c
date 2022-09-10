@@ -69,14 +69,16 @@ int main()
 	expect("list", body->value);
 	Node * str = body->next;
 	assert("string", get_type(str->value) == STRING);
-	expect("Deze test is", str->value);
+	expect("This test is", str->value);
 	Node * var = str->next;
 	assert("label", get_type(var->value) == ID);
 	expect("x", var->value);
 	
 	// TODO printf("Calling 'transform'\n");
+
+	printf("Running 'eval'\n");
+	println_value(eval(parsed, root_env));
 	
 	fclose(file);
-	printf("Done!\n");
 }
 
