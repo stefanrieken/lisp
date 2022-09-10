@@ -16,7 +16,7 @@ int main (int argc, char ** argv)
 {
 	FILE * source = stdin;
 	if (argc > 1) {
-		source = fopen(argv[1], "rb");
+		source = fopen(argv[1], "r");
 		if (source == NULL) {
 			printf("Could not open file: %s\n", argv[1]);
 			exit(-1);

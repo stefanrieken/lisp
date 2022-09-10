@@ -1,15 +1,82 @@
 #include <stdio.h>
-#include "lisp_lexer.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 
-char testbuffer[5];
+#include "structs.h"
+#include "parse.h"
+#include "print.h"
+#include "lisp_primitives.h"
+#include "special.h"
+#include "eval.h"
+#include "../tmmh/tmmh.h"
+
+void * memory;
+
+void assert(char * what, bool whatwhat) {
+	if(!whatwhat) {
+		printf("Expected %s\n", what);
+		exit(-1);
+	}
+}
+
+void expect(char * what, char * who) {
+	if(!strcmp(what, who) == 0) {
+		printf("Expected %s got %s\n", what, who);
+		exit(-1);
+	}
+}
 
 int main()
 {
-	if (parse_zero_ending_word(testbuffer, 5) != -1)
-	{
-		printf(testbuffer);
-		printf("\n");
-	}
-	else printf("Could not parse word into buffer.\n");
+	pif pifs[] = {pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none};
+
+	memory = tmmh_init(5000, pifs);
+	Environment * root_env = (Environment *) allocate(memory, sizeof(Environment), false);
+
+	root_env->parent = NULL;
+	root_env->variables = NULL;
+
+	register_specials(root_env);
+	register_primitives(root_env);
+
+	printf("Parsing test file\n");
+
+	FILE * file = fopen("testdata.scm", "r");
+	read_from(file);
+	
+	Node * parsed = (Node *) parse_value(file);
+	// peel apart entirely!
+	assert("Node", get_type(parsed) == LIST);
+	assert("label", get_type(parsed->value) == ID);
+	expect("if", parsed->value);
+	Node * cond = ((Node *) parsed->next)->value;
+	assert("Node", get_type(cond) == LIST);
+	assert("label", get_type(cond->value) == ID);
+	expect("eq", cond->value);
+	assert("int", get_type(((Node *) cond->next)->value) == INT);
+	Node * lambda = ((Node *) ((Node *) ((Node *) parsed->next)->next)->value)->value;
+	assert("Node", get_type(lambda) == LIST);
+	assert("label", get_type(lambda->value) == ID);
+	expect("lambda", lambda->value);
+	Node * args = ((Node *) lambda->next)->value;
+	assert("Node", get_type(args) == LIST);
+	assert("label", get_type(args->value) == ID);
+	expect("x", args->value);
+	Node * body = ((Node *) ((Node *) lambda->next)->next)->value;
+	assert("Node", get_type(body) == LIST);
+	assert("label", get_type(body->value) == ID);
+	expect("list", body->value);
+	Node * str = body->next;
+	assert("string", get_type(str->value) == STRING);
+	expect("Deze test is", str->value);
+	Node * var = str->next;
+	assert("label", get_type(var->value) == ID);
+	expect("x", var->value);
+	
+	// TODO printf("Calling 'transform'\n");
+	
+	fclose(file);
+	printf("Done!\n");
 }
 
