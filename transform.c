@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "../tmmh/tmmh.h"
 
@@ -147,6 +148,7 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
   while(list != NULL)
   {
     if (list->value == NULL) {
+//printf("null\n");
       result = new(Node, LIST);
       result->next = NULL;
       result->value = NULL;
@@ -156,26 +158,56 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     int type = get_type(list->value);
     if (type == INT && ((intptr_t) list->value) == (((intptr_t) (list->value) << 2) >> 2))
     {
+//printf("int\n");
       // in range for in-line int
       result = new(Node, LIST);
       result->next = NULL;
-      result->value = (void *) (((intptr_t)list->value) << 2); // encode as int
+      result->value = (void *) ((((intptr_t) list->value) << 2) | 0b01); // encode as int
     }
     else if (type == ID)
     {
+//printf("id\n");
       result = new(Node, LIST);
       result->next = NULL;
       if (evaluate) {
         Variable * var = find_variable(env, list->value, true); // first local then global
         if (var == NULL && global != env) var = find_variable(global, list->value, true);
-        if (var != NULL) result->value=var->value;
-        else result->value = NULL;
+        if (var != NULL) {
+//printf("Variable found: %s %p\n", (char*) list->value, var->value);
+          result->value=var->value;
+          // hmm, having to jump through the same hoops once more here
+          if(var->value != NULL) {
+            int var_type = get_type(var->value);
+            if (type == INT && ((intptr_t) var->value) == (((intptr_t) (var->value) << 2) >> 2)) {
+              result->value = (void*) (((intptr_t) result->value) | 0b01);
+            }
+            else if (var_type == PRIMITIVE || var_type == SPECIAL) {
+              result->value = (void*) (((intptr_t) result->value) | 0b11);
+            }
+            else if (var_type != ID) {
+              result->value = (void*) (((intptr_t) result->value) | 0b10); // assume native data at this point
+            }
+          }
+        } else {
+//printf("Variable not found: %s\n", (char*) list->value);
+          result->value = NULL;
+        }
       } else {
-        result->value= (void *) ( ((intptr_t) list->value) & 0b01); // encode as label reference
+//printf("Reference label: %s\n", (char*) list->value);
+        result->value= list->value; // encode as label reference == leave as-is
       }
+    }
+    else if (type < ID)
+    {
+//printf("native\n");
+      // Native value pointer
+      result = new(Node, LIST);
+      result->next = NULL;
+      result->value = (void*) (((intptr_t) list->value) | 0b10); // encode as language-native pointer
     }
     else if (type == LIST)
     {
+//printf("list\n");
       // Retain lists as data for as long as possible;
       // only call 'transform' when they get evaluated.
       // IF we have to evaluate at this point, we are faced with a
@@ -185,15 +217,20 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
       } else {
         result = new(Node, LIST);
         result->next = NULL;
-        result->value = list->value;
+        result->value = (void *) (((intptr_t) list->value) | 0b10); // encode as language-native pointer
       }
     }
     else if (type == SPECIAL || type == PRIMITIVE)
     {
+//printf("prim\n");
       result = new(Node, LIST);
       result->next = NULL;
       if (type == SPECIAL) evaluate = false; // don't evaluate subsequent args
-      result->value = (void *) (((intptr_t) list->value) & 0b11); // retain and encode as primitive
+      result->value = (void *) (((intptr_t) list->value) | 0b11); // retain and encode as primitive
+    }
+    else
+    {
+      printf("Could not process: %d\n", type);
     }
 
     process_result:

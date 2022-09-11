@@ -9,8 +9,10 @@
 #include "lisp_primitives.h"
 #include "special.h"
 #include "eval.h"
+#include "transform.h"
 #include "../tmmh/tmmh.h"
 
+#define mask(val, m) (((intptr_t) val) & m)
 void * memory;
 
 void assert(char * what, bool whatwhat) {
@@ -75,8 +77,37 @@ int main()
 	expect("x", var->value);
 	
 	printf("Calling 'transform' (work in progress)\n");
-	Environment * transform_env = (Environment *) allocate(memory, sizeof(Environment), false);
-	transform(parsed, transform_env, transform_env);
+	//Environment * transform_env = (Environment *) allocate(memory, sizeof(Environment), false);
+
+	Node * post = transform(parsed, root_env, root_env);
+	assert("native pointer", (intptr_t) mask(post->value, 0b11) == 0b10);
+	assert("string", get_type((void *) mask(post->value, ~0b11)));
+	expect("successful!", (char*) mask(post->value, ~0b11));
+	Node * lambda2 = post->next;
+	// TODO: fix+test lambda transformation
+	//Node * apply1 = post->next;
+	// TODO: fix+test insertion of 'apply' (or combination of call+apply)
+	Node * val1 = lambda2->next; // TODO should by apply1->next
+	assert("int", mask(val1->value, 0b11) == 0b01);
+	assert("2", ((intptr_t) val1->value) >> 2);
+	Node * val2 = val1->next;
+	assert("int", mask(val2->value, 0b11) == 0b01);
+	assert("2", ((intptr_t) val2->value) >> 2);
+	Node * eq = val2->next;
+	assert("primitive", mask(eq->value, 0b11) == 0b11);
+	// TODO this is interesting: apparently we do wrap the callbacks inside a tmmh pointer
+	// This extra indirection may not be required after 'transform' has egalized the difference
+	// between special and primitive functions (by (not) transforming their arguments)
+	assert("special", get_type((void*)mask(eq->value, ~0b11)) == SPECIAL);
+	//Node * apply2 = eq->next;
+	// TODO: fix+test insertion of 'apply' (or combination of call+apply)
+	Node * if2 = eq->next; // TODO should be apply2->next
+	assert("primitive", mask(if2->value, 0b11) == 0b11);
+	assert("special", get_type((void*) mask(if2->value, ~0b11)) == SPECIAL); // TODO same comment as before
+	//Node * apply3 = eq->next;
+	// TODO: fix+test insertion of 'apply' (or combination of call+apply)
+	assert("done", if2->next == NULL); // TODO should be apply3->next
+	
 
 	printf("Running 'eval'\n");
 	println_value(eval(parsed, root_env));
