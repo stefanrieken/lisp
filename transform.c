@@ -11,6 +11,7 @@
 #include "../wonky/wonky.h"
 
 #define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
+#define mask(val, m) (((intptr_t) val) & m)
 
 static inline void * allocate_type(int size, int type)
 {
@@ -140,7 +141,7 @@ State * make_new_state_for(Node * function, State * caller_state) {
 Node * transform_common_expression(Node * list, Environment * global, Environment * env) {
   int length = 0;
 
-  bool evaluate = true;
+  int evaluate = 1; // tri-state: 0=never, 1=always; negative=until re-set to 0 (this is to support 'if')
 
   Node * total = NULL;
   Node * result = NULL;
@@ -156,24 +157,22 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     }
 
     int type = get_type(list->value);
-    if (type == INT && ((intptr_t) list->value) == (((intptr_t) (list->value) << 2) >> 2))
+    if (type == INT && *((intptr_t *) list->value) == (*((intptr_t *) list->value) << 2) >> 2)
     {
-//printf("int\n");
+      //printf("in-lining int val %ld\n", *((intptr_t *) list->value));
       // in range for in-line int
       result = new(Node, LIST);
       result->next = NULL;
-      result->value = (void *) ((((intptr_t) list->value) << 2) | 0b01); // encode as int
+      result->value = (void *) ((*((intptr_t *) list->value) << 2) | 0b01); // encode as int
     }
     else if (type == ID)
     {
-//printf("id\n");
       result = new(Node, LIST);
       result->next = NULL;
-      if (evaluate) {
+      if (evaluate != 0	) {
         Variable * var = find_variable(env, list->value, true); // first local then global
         if (var == NULL && global != env) var = find_variable(global, list->value, true);
         if (var != NULL) {
-//printf("Variable found: %s %p\n", (char*) list->value, var->value);
           result->value=var->value;
           // hmm, having to jump through the same hoops once more here
           if(var->value != NULL) {
@@ -182,6 +181,11 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
               result->value = (void*) (((intptr_t) result->value) | 0b01);
             }
             else if (var_type == PRIMITIVE || var_type == SPECIAL) {
+              if (var_type == SPECIAL)
+              {
+                if (strcmp("if", list->value) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
+                else evaluate = 0;
+              }
               result->value = (void*) (((intptr_t) result->value) | 0b11);
             }
             else if (var_type != ID) {
@@ -189,17 +193,17 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
             }
           }
         } else {
-//printf("Variable not found: %s\n", (char*) list->value);
           result->value = NULL;
         }
       } else {
-//printf("Reference label: %s\n", (char*) list->value);
+        // encode label reference
+        // TODO: We can't have labels as normal char pointers IF we want support for negative values (label+eval).
+        // But for now it's just char pointers followed by a separate eval.
         result->value= list->value; // encode as label reference == leave as-is
       }
     }
     else if (type < ID)
     {
-//printf("native\n");
       // Native value pointer
       result = new(Node, LIST);
       result->next = NULL;
@@ -207,12 +211,11 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     }
     else if (type == LIST)
     {
-//printf("list\n");
       // Retain lists as data for as long as possible;
       // only call 'transform' when they get evaluated.
       // IF we have to evaluate at this point, we are faced with a
       // sub-expression: (* (+ x 2) 3) that we put in line.
-      if (evaluate) {
+      if (evaluate != 0) {
         result = transform(list->value, global, env); // may be NULL!
       } else {
         result = new(Node, LIST);
@@ -220,14 +223,10 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
         result->value = (void *) (((intptr_t) list->value) | 0b10); // encode as language-native pointer
       }
     }
-    else if (type == SPECIAL || type == PRIMITIVE)
+/*  else if (type == SPECIAL || type == PRIMITIVE)
     {
-//printf("prim\n");
-      result = new(Node, LIST);
-      result->next = NULL;
-      if (type == SPECIAL) evaluate = false; // don't evaluate subsequent args
-      result->value = (void *) (((intptr_t) list->value) | 0b11); // retain and encode as primitive
-    }
+      // Umm you don't really get here: specials and primitives are found by ID in the root Environment
+    }*/
     else
     {
       printf("Could not process: %d\n", type);
@@ -243,11 +242,21 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
         length++;
       }
       length++; // have at least one new node at this point
+      
+      if (total == NULL) {
+        // add 'eval' statement at end of this expression
+        total = new(Node, LIST);
+        total->value = 0;
+        total->next = NULL;
+      }
+
       result_end->next = total;
       total = result;
       result = NULL;
     }
+
     // Proceed to next item
+    if (evaluate < 0) evaluate++;
     list = ((Node *) list->next);
   }
 

@@ -8,4 +8,7 @@
 
 ;; After transform, expect:
 ;;
-;; "successful" lambda <apply> 2 2 eq <apply> if <apply>
+;; ( ) 2 2 eq <apply> if <apply>
+;;  |
+;;  v
+;; "successful" lambda <apply>
