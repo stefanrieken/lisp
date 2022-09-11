@@ -30,7 +30,7 @@ Variable * add_variable(Environment * environment, char * name, void * value)
 	return variable;
 }
 
-Variable * set_variable(Environment * environment, char * name, void * value, bool recurse)
+Variable * find_variable(Environment * environment, char * name, bool recurse)
 {
 	Variable * var = environment->variables;
 	while (var != NULL && strcmp(var->name, name) != 0) {
@@ -38,11 +38,18 @@ Variable * set_variable(Environment * environment, char * name, void * value, bo
 	}
 	
 	if (var != NULL) {
-		var->value = value;
 		return var;
 	} else if (recurse && environment->parent != NULL) {
-		set_variable(environment->parent, name, value, recurse);
+		find_variable(environment->parent, name, recurse);
 	}
 	// else
 	return NULL;
+}
+
+Variable * set_variable(Environment * environment, char * name, void * value, bool recurse)
+{
+	Variable * var = find_variable(environment, name, recurse);
+	if (var == NULL) return NULL;
+	var->value = value;
+	return var;
 }

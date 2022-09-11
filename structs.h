@@ -37,6 +37,7 @@ typedef void * (* special_form) (Node * args, Environment * env);
 typedef void * (* primitive_form) (Node * args, Environment * env);
 
 extern Variable * add_variable(Environment * environment, char * name, void * value);
+extern Variable * find_variable(Environment * environment, char * name, bool recurse);
 extern Variable * set_variable(Environment * environment, char * name, void * value, bool recurse);
 
 extern void * memory;

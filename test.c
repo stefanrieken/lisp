@@ -74,7 +74,9 @@ int main()
 	assert("label", get_type(var->value) == ID);
 	expect("x", var->value);
 	
-	// TODO printf("Calling 'transform'\n");
+	printf("Calling 'transform' (work in progress)\n");
+	Environment * transform_env = (Environment *) allocate(memory, sizeof(Environment), false);
+	transform(parsed, transform_env, transform_env);
 
 	printf("Running 'eval'\n");
 	println_value(eval(parsed, root_env));
