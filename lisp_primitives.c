@@ -24,7 +24,7 @@ static inline void * allocate_type(int size, int type)
 static inline intptr_t * envelop(intptr_t val)
 {
 	intptr_t * pointer = (intptr_t *) allocate(memory, 4, false);
-	set_type(pointer, INT);
+	set_type(pointer, VTYPE_INT);
 	(* pointer) = val;
 	return pointer;
 }
@@ -74,7 +74,7 @@ static void * bitclear (Node * args, Environment * env)
 static void * address (Node * args, Environment * env)
 {
 	intptr_t * address = allocate(memory, sizeof (void *), false);
-	set_type(address, INT);
+	set_type(address, VTYPE_INT);
 	(* address) = (intptr_t) (args->value);
 	return address;
 }
@@ -101,7 +101,7 @@ static void * gc_collect(Node * args, Environment * env) {
 
 static inline void * typify(special_form form)
 {
-	special_form * type = new (special_form, PRIMITIVE);
+	special_form * type = new (special_form, VTYPE_PRIMITIVE);
 	(* type) = form;
 	return type;
 }

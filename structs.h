@@ -4,17 +4,17 @@
 
 #include <stdbool.h>
 
-typedef enum value_type {
-	UNTYPED,
-	INT,
-	STRING,
-	ID, // Label
-	LIST,
-	LAMBDA,
-	SPECIAL,
-	PRIMITIVE,
-	ENVIRONMENT,
-	VARIABLE
+typedef enum ValueType {
+	VTYPE_NONE,
+	VTYPE_INT,
+	VTYPE_STRING,
+	VTYPE_ID, // Label
+	VTYPE_LIST,
+	VTYPE_LAMBDA,
+	VTYPE_SPECIAL,
+	VTYPE_PRIMITIVE,
+	VTYPE_ENVIRONMENT,
+	VTYPE_VARIABLE
 } ValueType;
 
 typedef struct Variable {

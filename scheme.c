@@ -22,7 +22,7 @@ static inline bool streq(char * str1, char * str2)
 	return strcmp(str1, str2) == 0;
 }
 
-static void * iff(Node * arg, Environment * env)
+void * iff(Node * arg, Environment * env)
 {
 	if (arg == NULL || arg->next == NULL) return NULL;
 
@@ -37,21 +37,21 @@ static void * iff(Node * arg, Environment * env)
 }
 
 // TODO check if there are subtle differences between McCarthy and Scheme here
-static void * lambda(Node * arg, Environment * environment)
+void * lambda(Node * arg, Environment * environment)
 {
- 	Node * node = new(Node, LIST);
+ 	Node * node = new(Node, VTYPE_LIST);
  	node->value = environment;
- 	set_type(node->value, LAMBDA);
+ 	set_type(node->value, VTYPE_LAMBDA);
  	node->next = arg;
  	return node;
 }
 
-static void * set(Node * arg, Environment * environment)
+void * set(Node * arg, Environment * environment)
 {
  	if (arg == NULL) return NULL;
  	void * name = eval(arg->value, environment);
  	if (name == NULL) return NULL;
- 	if (get_type(name) != ID) return NULL;
+ 	if (get_type(name) != VTYPE_ID) return NULL;
 
  	if (arg->next == NULL) return NULL;
  	Node * val = (Node *) arg->next;
@@ -60,7 +60,7 @@ static void * set(Node * arg, Environment * environment)
  	return value;
 }
 
-static void * quote (Node * args, Environment * environment)
+void * quote (Node * args, Environment * environment)
 {
  	return args->value;
 }
@@ -82,11 +82,11 @@ static void * eq(Node * lhs, Environment * env)
   void * lhsval = eval(lhs->value, env);
   void * rhsval = eval(rhs->value, env);
 
-  if (get_type(lhsval) >= LIST) return NULL;
-  if (get_type(rhsval) >= LIST) return NULL;
+  if (get_type(lhsval) >= VTYPE_LIST) return NULL;
+  if (get_type(rhsval) >= VTYPE_LIST) return NULL;
 
   if (get_type(lhsval) != get_type(rhsval)) return NULL;
-  if ((get_type(lhsval) == STRING || get_type(lhsval) == ID)
+  if ((get_type(lhsval) == VTYPE_STRING || get_type(lhsval) == VTYPE_ID)
       && streq((char *) lhs->value, (char *) rhsval))
     return lhsval; // 'true'
   else if ((*(intptr_t*) lhsval) == (*(intptr_t*) rhsval))
@@ -98,12 +98,12 @@ static void * eq(Node * lhs, Environment * env)
 // This one is not usually quoted as a required primitive
 // but it makes producing a list with evaluated contents 
 // a lot easier compared to repeated cons'ing.
-static void * list(Node * args, Environment * environment)
+void * list(Node * args, Environment * environment)
 {
 	if (args == NULL || args->value == NULL) return NULL;
-	Node * result = new(Node, LIST);
+	Node * result = new(Node, VTYPE_LIST);
 	result->value = eval(args->value, environment);
-	if (args->next == NULL || get_type(args->next) != LIST) {
+	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) {
 		result->next = args->next;
 	} else {
 		result->next = list(args->next, environment);
@@ -112,15 +112,15 @@ static void * list(Node * args, Environment * environment)
 }
 
 // So let's throw in 'his' atom as well for now.
-static void * atom(Node * arg, Environment * env)
+void * atom(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(eval(arg->value, env)) >= LIST) return NULL;
+	if (arg == NULL || get_type(eval(arg->value, env)) >= VTYPE_LIST) return NULL;
 	return arg->value;
 }
 
 static inline void * typify(special_form form)
 {
- 	special_form * type = new (special_form, SPECIAL);
+ 	special_form * type = new (special_form, VTYPE_SPECIAL);
  	(* type) = form;
  	return type;
 }

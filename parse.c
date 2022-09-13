@@ -109,7 +109,7 @@ char * parse_string()
 {
 	int size = 1;
 	char * result = (char *) allocate(memory, size, false);
-	set_type(result, STRING);
+	set_type(result, VTYPE_STRING);
 	int c = buffered_read();
 
 	while (c != -1 && c != '"')
@@ -159,7 +159,7 @@ char * parse_label(int c)
 	if (c != -1) buffer_return(c);
 
 	result[size-1] = 0;
-	set_type(result, ID);
+	set_type(result, VTYPE_ID);
 	return result;
 }
 
@@ -188,7 +188,7 @@ void * parse_label_or_number (int c, int radix)
 	}
 
 	intptr_t * pointer = allocate(memory, 4, false);
-	set_type(pointer, INT);
+	set_type(pointer, VTYPE_INT);
 	(* pointer) = result * sign;
 
 	return pointer;
@@ -208,12 +208,12 @@ static inline void * allocate_type(int size, int type)
  */
 Node * parse_quote()
 {
-	Node * node = new (Node, LIST);
-	void * quote = allocate_type(6, ID);
+	Node * node = new (Node, VTYPE_LIST);
+	void * quote = allocate_type(6, VTYPE_ID);
 	strcpy (quote, "quote");
 	node->value = quote;
 
-	Node * next = new (Node, LIST);
+	Node * next = new (Node, VTYPE_LIST);
 	next->next = NULL;
 	next->value = parse_value();
 	node->next = next;
@@ -235,7 +235,7 @@ Node * parse_list(char opening_bracket)
 	if (ch == closing_bracket) return NULL; // empty list
 	buffer_return(ch);
 
-	Node * pair = new (Node, LIST);
+	Node * pair = new (Node, VTYPE_LIST);
 
 	pair->value = parse_value();
 	ch = get_non_whitespace_char();

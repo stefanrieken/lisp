@@ -14,7 +14,7 @@ static inline void * allocate_type(int size, int type)
 
 Variable * add_variable(Environment * environment, char * name, void * value)
 {
-	Variable * variable = new(Variable, VARIABLE);
+	Variable * variable = new(Variable, VTYPE_VARIABLE);
 	variable->name = name;
 	variable->value = value;
 	variable->next = NULL;

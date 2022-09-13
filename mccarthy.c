@@ -30,7 +30,7 @@ static inline bool streq(char * str1, char * str2)
 // if we do not secure other methods to recognize this special value
 static void * atom(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(eval(arg->value, env)) >= LIST) return NULL;
+	if (arg == NULL || get_type(eval(arg->value, env)) >= VTYPE_LIST) return NULL;
 	return arg->value;
 }
 
@@ -44,11 +44,11 @@ static void * eq(Node * lhs, Environment * env)
   void * lhsval = eval(lhs->value, env);
   void * rhsval = eval(rhs->value, env);
 
-  if (get_type(lhsval) >= LIST) return NULL;
-  if (get_type(rhsval) >= LIST) return NULL;
+  if (get_type(lhsval) >= VTYPE_LIST) return NULL;
+  if (get_type(rhsval) >= VTYPE_LIST) return NULL;
 
   if (get_type(lhsval) != get_type(rhsval)) return NULL;
-  if ((get_type(lhsval) == STRING || get_type(lhsval) == ID)
+  if ((get_type(lhsval) == VTYPE_STRING || get_type(lhsval) == VTYPE_ID)
       && streq((char *) lhs->value, (char *) rhsval))
     return lhsval; // 'true'
   else if ((*(intptr_t*) lhsval) == (*(intptr_t*) rhsval))
@@ -74,9 +74,9 @@ static void * cdr(Node * arg, Environment * env)
 static void * cons(Node * args, Environment * environment)
 {
  	if (args == NULL) return NULL;
- 	if (args->next == NULL || get_type(args->next) != LIST) return NULL;
+ 	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) return NULL;
  	Node * next = (Node *) args->next;
- 	Node * result = new (Node, LIST);
+ 	Node * result = new (Node, VTYPE_LIST);
  	result->value = eval(args->value, environment);
  	result->next = eval(next->value, environment);
  	return result;
@@ -84,7 +84,7 @@ static void * cons(Node * args, Environment * environment)
 
 static void * cond(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(arg->value) != LIST) return NULL;
+	if (arg == NULL || get_type(arg->value) != VTYPE_LIST) return NULL;
 
 	while (arg != NULL) {
 	 	Node * cond = arg->value;
@@ -104,16 +104,16 @@ static void * cond(Node * arg, Environment * env)
 
 static void * lambda(Node * arg, Environment * environment)
 {
- 	Node * node = new(Node, LIST);
+ 	Node * node = new(Node, VTYPE_LIST);
  	node->value = environment;
- 	set_type(node->value, LAMBDA);
+ 	set_type(node->value, VTYPE_LAMBDA);
  	node->next = arg;
  	return node;
 }
 
 static void * label(Node * arg, Environment * environment)
 {
- 	if (arg == NULL || get_type(arg->value) != ID) return NULL;
+ 	if (arg == NULL || get_type(arg->value) != VTYPE_ID) return NULL;
  	if (arg->next == NULL) return NULL;
  	Node * val = (Node *) arg->next;
  	void * value = eval(val->value, environment);
@@ -127,9 +127,9 @@ static void * label(Node * arg, Environment * environment)
 static void * list(Node * args, Environment * environment)
 {
 	if (args == NULL || args->value == NULL) return NULL;
-	Node * result = new(Node, LIST);
+	Node * result = new(Node, VTYPE_LIST);
 	result->value = eval(args->value, environment);
-	if (args->next == NULL || get_type(args->next) != LIST) {
+	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) {
 		result->next = args->next;
 	} else {
 		result->next = list(args->next, environment);
@@ -144,7 +144,7 @@ static void * quote (Node * args, Environment * environment)
 
 static inline void * typify(special_form form)
 {
- 	special_form * type = new (special_form, SPECIAL);
+ 	special_form * type = new (special_form, VTYPE_SPECIAL);
  	(* type) = form;
  	return type;
 }

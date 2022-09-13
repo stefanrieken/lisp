@@ -9,7 +9,7 @@ void print_list_body(Node * list)
 {
 	print_value(list->value);
 	if (list->next != NULL) {
-		if (get_type(list->next) == LIST) {
+		if (get_type(list->next) == VTYPE_LIST) {
 			printf(" ");
 			print_list_body((Node *) list->next);
 		} else {
@@ -36,13 +36,13 @@ void print_value(void * value)
 
 	int type = get_type(value);
 
-	if (type == LIST) print_list((Node *) value);
-	else if (type == INT) printf("%d", * ((int32_t *) value));
-	else if (type == ID) printf("%s", (char *) value);
-	else if (type == STRING) printf("\"%s\"", (char *) value);
-	else if (type == LAMBDA) printf("lambda");
-	else if (type == SPECIAL) printf("<special>");
-  else if (type == PRIMITIVE) printf("<fn-primitive>");
+	if (type == VTYPE_LIST) print_list((Node *) value);
+	else if (type == VTYPE_INT) printf("%d", * ((int32_t *) value));
+	else if (type == VTYPE_ID) printf("%s", (char *) value);
+	else if (type == VTYPE_STRING) printf("\"%s\"", (char *) value);
+	else if (type == VTYPE_LAMBDA) printf("lambda");
+	else if (type == VTYPE_SPECIAL) printf("<special>");
+	else if (type == VTYPE_PRIMITIVE) printf("<fn-primitive>");
 	else printf("unknown type %d %s", type, (char *) value);
 }
 
