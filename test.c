@@ -170,9 +170,7 @@ int main()
 			assert(" primitive:list", PRIMITIVE, BTYPE(liszt->value));
 			Node * apply = liszt->next;
 			assert(" <apply>", 0, (intptr_t) apply->value);
-			Node * next = apply->next; // TODO this second apply seems excessive?
-			assert(" <apply>", 0, (intptr_t) next->value);
-			assert(")", 0, (intptr_t) next->next);
+			assert(")", 0, (intptr_t) apply->next);
 			remove_indent();
 		Node * apply1 = lambda2->next;
 		assert(" <apply>", 0, (intptr_t) apply1->value);

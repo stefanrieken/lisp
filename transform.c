@@ -87,7 +87,7 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
     // Bind environment to one node before code
     Node * lambda_expr = new(Node, VTYPE_LIST);
     lambda_expr->value = (void*) (((intptr_t)lambda_env)|NATIVE); // = bind
-    lambda_expr->next = transform(((Node*)list->next)->next, global, lambda_env);
+    lambda_expr->next = transform(((Node*) ((Node*)list->next)->next)->value, global, lambda_env);
 
     // Keep lambda expression out-of-line    
     (*result) = new(Node, VTYPE_LIST);
