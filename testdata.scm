@@ -8,7 +8,10 @@
 
 ;; After transform, expect:
 ;;
-;; ( ) 2 2 eq <apply> if <apply>
+;; (then) 2 2 eq <apply> if <apply>
 ;;  |
 ;;  v
-;; "successful" lambda <apply>
+;; "successful" (lambda) <apply>
+;;               |
+;;               v
+;;              <env> x "This test is" list <apply>

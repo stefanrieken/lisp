@@ -47,7 +47,7 @@ bool transform_definition_expression(Node * list, Environment * global, Environm
     // because at least in Scheme the return value of 'define' is undefined (heh).
     (*result) = new(Node, VTYPE_LIST);
     (*result)->next = NULL;
-    (*result)->value = NULL;
+    (*result)->value = NULL; // TODO type this value to avoid 'EVAL'!
     return true;
   }
   // else
@@ -70,7 +70,7 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
   if (strcmp("lambda", label) == 0)
   {
     //  Extend env and pre-fill with args as a template
-    Environment * lambda_env = new(Environment, VTYPE_ENVIRONMENT);
+    Environment * lambda_env = new(Environment, VTYPE_ENVIRONMENT); // TODO or VTYPE_LAMBDA?
     lambda_env->parent = env;
 
     // extract arg names:
@@ -86,14 +86,12 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
 
     // Bind environment to one node before code
     Node * lambda_expr = new(Node, VTYPE_LIST);
-    lambda_expr->value = (void*) (((intptr_t)env)|NATIVE); // = bind
-    set_type(lambda_expr->value, VTYPE_LAMBDA);
+    lambda_expr->value = (void*) (((intptr_t)lambda_env)|NATIVE); // = bind
     lambda_expr->next = transform(((Node*)list->next)->next, global, lambda_env);
 
     // Keep lambda expression out-of-line    
     (*result) = new(Node, VTYPE_LIST);
-    (*result)->value = lambda_expr;
-    set_type((*result)->value, VTYPE_LIST);
+    (*result)->value = (void*) (((intptr_t)lambda_expr)|NATIVE);
     (*result)->next = NULL;
     return true;
   }
@@ -176,7 +174,7 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
 //printf("null\n");
       result = new(Node, VTYPE_LIST);
       result->next = NULL;
-      result->value = NULL;
+      result->value = NULL; // TODO type this null
       goto process_result; // skip-ahead to bottom of loop
     }
 
@@ -216,7 +214,7 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
             }
           }
         } else {
-          result->value = NULL;
+          result->value = NULL; // TODO type this null
         }
       } else {
         // encode label reference
@@ -255,7 +253,7 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     }*/
     else
     {
-      printf("Could not process: %d\n", type);
+      printf("Could not process:  %d\n", type);
     }
 
     process_result:
