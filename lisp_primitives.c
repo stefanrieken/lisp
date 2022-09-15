@@ -19,73 +19,73 @@ static inline void * allocate_type(int size, int type)
 
 // 'intptr_t' is the 'int' that is of pointer width
 // (so on 64-bit machines it is 64-bit instead of 32)
-#define AS_INT(x) (*(intptr_t *) ((Node *) x)->value)
+#define AS_INT(x) (*(x->value.intptr))
 
-static inline intptr_t * envelop(intptr_t val)
+static inline Element envelop(intptr_t val)
 {
 	intptr_t * pointer = (intptr_t *) allocate(memory, 4, false);
 	set_type(pointer, VTYPE_INT);
 	(* pointer) = val;
-	return pointer;
+	return (Element) pointer;
 }
 
-static void * add (Node * args, Environment * env)
+static Element add (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) + AS_INT(args->next));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) + AS_INT(args->next.node));
 }
 
-static void * subtract (Node * args, Environment * env)
+static Element subtract (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) - AS_INT(args->next));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) - AS_INT(args->next.node));
 }
 
-static void * multiply (Node * args, Environment * env)
+static Element multiply (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) * AS_INT(args->next));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) * AS_INT(args->next.node));
 }
 
-static void * divide (Node * args, Environment * env)
+static Element divide (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) / AS_INT(args->next));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) / AS_INT(args->next.node));
 }
 
-static void * modulo (Node * args, Environment * env)
+static Element modulo (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) % AS_INT(args->next));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) % AS_INT(args->next.node));
 }
 // bit-meddling things
-static void * bitset (Node * args, Environment * env)
+static Element bitset (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) | (1 << AS_INT(args->next)));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) | (1 << AS_INT(args->next.node)));
 }
 
-static void * bitclear (Node * args, Environment * env)
+static Element bitclear (Node * args, Environment * env)
 {
-	if (args == NULL || args->next == NULL) return NULL;
-	return envelop(AS_INT(args) & ~(1 << AS_INT(args->next)));
+	if (args == NULL || args->next.ptr == NULL) return (Element) NULL;
+	return envelop(AS_INT(args) & ~(1 << AS_INT(args->next.node)));
 }
 
-static void * address (Node * args, Environment * env)
+static Element address (Node * args, Environment * env)
 {
 	intptr_t * address = allocate(memory, sizeof (void *), false);
 	set_type(address, VTYPE_INT);
-	(* address) = (intptr_t) (args->value);
-	return address;
+	(* address) = (intptr_t) (args->value.ptr);
+	return (Element) address;
 }
 
-static void * value_at (Node * args, Environment * env)
+static Element value_at (Node * args, Environment * env)
 {
-	if (args == NULL) return NULL;
-	return (void *) AS_INT(args);
+	if (args == NULL) return (Element) NULL;
+	return (Element) AS_INT(args);
 }
 
-static void * gc_collect(Node * args, Environment * env) {
+static Element gc_collect(Node * args, Environment * env) {
 	char * buffer = malloc((tmmh_memsize(memory) + 1) / 4);
 
 	tmmh_visualize(memory, buffer);
@@ -96,14 +96,14 @@ static void * gc_collect(Node * args, Environment * env) {
 	tmmh_visualize(memory, buffer);
 	printf("%s\n", buffer);
 
-	return NULL;
+	return (Element) NULL;
 }
 
-static inline void * typify(special_form form)
+Element typify(special_form form)
 {
 	special_form * type = new (special_form, VTYPE_PRIMITIVE);
 	(* type) = form;
-	return type;
+	return (Element) type;
 }
 
 void register_primitives(Environment * env)

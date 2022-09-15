@@ -136,13 +136,13 @@ In my mind, this just goes to show how dense this minimum set really is.
 So I did add a 'list' primitive which takes the biggest load off the above:
 
 	(label greet (lambda (x) (list "hello" x)))
-	(greet world)
+	(greet "world")
 
 You can also directly use an anonymous function:
 
 	((lambda (x y) (list y x)) "world" "hello")
 
-Or even to use remainder args:
+Or even to use remainder args (using scheme style throughout):
 
 	((lambda (x . y) (list (car y) (car (cdr y)))) "print" "hello" "world")
 
@@ -150,7 +150,7 @@ And pair notation in general:
 
 	'("hello" . ("world" . ()))
 
-Let me show off '&rest' remainder values:
+Further showing off remainder values:
 
 	(label a (lambda x "here's a comment" (list "I have your args as a list:" x)))
 	(a "hi")

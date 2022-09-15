@@ -1,3 +1,4 @@
-extern void print_value(void * list);
-extern void println_value(void * list);
+#include "structs.h"
 
+extern void print_value(Element value);
+extern void println_value(Element value);

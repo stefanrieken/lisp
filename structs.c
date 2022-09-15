@@ -12,7 +12,7 @@ static inline void * allocate_type(int size, int type)
 	return bla;
 }
 
-Variable * add_variable(Environment * environment, char * name, void * value)
+Variable * add_variable(Environment * environment, char * name, Element value)
 {
 	Variable * variable = new(Variable, VTYPE_VARIABLE);
 	variable->name = name;
@@ -36,7 +36,7 @@ Variable * find_variable(Environment * environment, char * name, bool recurse)
 	while (var != NULL && strcmp(var->name, name) != 0) {
 		var = var->next;
 	}
-	
+
 	if (var != NULL) {
 		return var;
 	} else if (recurse && environment->parent != NULL) {
@@ -46,7 +46,7 @@ Variable * find_variable(Environment * environment, char * name, bool recurse)
 	return NULL;
 }
 
-Variable * set_variable(Environment * environment, char * name, void * value, bool recurse)
+Variable * set_variable(Environment * environment, char * name, Element value, bool recurse)
 {
 	Variable * var = find_variable(environment, name, recurse);
 	if (var == NULL) return NULL;

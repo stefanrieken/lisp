@@ -167,7 +167,7 @@ char * parse_label(int c)
  * Call parse_label first, and then decide wheter we can represent the
  * outcome as an integer. The 'radix' being the base, this function could
  * also be used to parse e.g. hexadecimal numbers (base 16).
- */ 
+ */
 void * parse_label_or_number (int c, int radix)
 {
 	char * str = parse_label(c);
@@ -211,12 +211,12 @@ Node * parse_quote()
 	Node * node = new (Node, VTYPE_LIST);
 	void * quote = allocate_type(6, VTYPE_ID);
 	strcpy (quote, "quote");
-	node->value = quote;
+	node->value.str = quote;
 
 	Node * next = new (Node, VTYPE_LIST);
-	next->next = NULL;
-	next->value = parse_value();
-	node->next = next;
+	next->next.node = NULL;
+	next->value.ptr = parse_value();
+	node->next.node = next;
 
 	return node;
 }
@@ -228,7 +228,7 @@ Node * parse_quote()
 Node * parse_list(char opening_bracket)
 {
 	// the opening bracket is already here.
-	
+
 	char closing_bracket = opening_bracket + (opening_bracket == '(' ? 1 : 2); // see ASCII
 
 	int ch = get_non_whitespace_char();
@@ -237,21 +237,21 @@ Node * parse_list(char opening_bracket)
 
 	Node * pair = new (Node, VTYPE_LIST);
 
-	pair->value = parse_value();
+	pair->value.ptr = parse_value();
 	ch = get_non_whitespace_char();
 	if (ch == -1) return NULL;
 
 	if (ch == '.') {
-		pair->next = parse_value();
+		pair->next.ptr = parse_value();
 		int ch = get_non_whitespace_char();
 		if (ch != ')') return NULL; // TODO say parse error
 		return pair;
 	} else if (ch == ')') {
-		pair->next = NULL;
+		pair->next.node = NULL;
 		return pair;
 	} else {
 		buffer_return(ch);
-		pair->next = parse_list(opening_bracket);
+		pair->next.node = parse_list(opening_bracket);
 		return pair;
 	}
 }
@@ -280,4 +280,3 @@ void * parse_value()
 	}
 	return NULL;
 }
-

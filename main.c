@@ -45,10 +45,10 @@ int main (int argc, char ** argv)
 	Node * command = parse_value();
 	while (command != NULL)
 	{
-		Node * result = eval(command, root_env);
+		Element result = eval((Element) command, root_env);
 		println_value(result);
 		command = parse_value();
 	}
-	
+
 	fclose(source);
 }

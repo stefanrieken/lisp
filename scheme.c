@@ -22,45 +22,45 @@ static inline bool streq(char * str1, char * str2)
 	return strcmp(str1, str2) == 0;
 }
 
-void * iff(Node * arg, Environment * env)
+static Element iff(Node * arg, Environment * env)
 {
-	if (arg == NULL || arg->next == NULL) return NULL;
+	if (arg == NULL || arg->next.ptr == NULL) return (Element) NULL;
 
 	// This is the actual if-statement evaluation and if-else block selection
-	Node * expr = (eval(arg->value, env) != NULL) ? arg->next : ((Node *) arg->next)->next;
-	
+	Node * expr = (eval(arg->value, env).ptr != NULL) ? arg->next.node : arg->next.node->next.node;
+
 	if (expr != NULL) {
 		return eval(expr->value, env);
 	}
 
-	return NULL;
+	return (Element) NULL;
 }
 
 // TODO check if there are subtle differences between McCarthy and Scheme here
-void * lambda(Node * arg, Environment * environment)
+static Element lambda(Node * arg, Environment * environment)
 {
  	Node * node = new(Node, VTYPE_LIST);
- 	node->value = environment;
- 	set_type(node->value, VTYPE_LAMBDA);
- 	node->next = arg;
- 	return node;
+ 	node->value.ptr = environment;
+ 	set_type(node->value.ptr, VTYPE_LAMBDA);
+ 	node->next.node = arg;
+ 	return (Element) node;
 }
 
-void * set(Node * arg, Environment * environment)
+static Element set(Node * arg, Environment * environment)
 {
- 	if (arg == NULL) return NULL;
- 	void * name = eval(arg->value, environment);
- 	if (name == NULL) return NULL;
- 	if (get_type(name) != VTYPE_ID) return NULL;
+ 	if (arg == NULL) return (Element) NULL;
+ 	Element name = eval(arg->value, environment);
+ 	if (name.ptr == NULL) return (Element) NULL;
+ 	if (get_type(name.ptr) != VTYPE_ID) return (Element) NULL;
 
- 	if (arg->next == NULL) return NULL;
- 	Node * val = (Node *) arg->next;
- 	void * value = eval(val->value, environment);
- 	add_variable(environment, name, value);
+ 	if (arg->next.node == NULL) return (Element) NULL;
+ 	Node * val = (Node *) arg->next.node;
+ 	Element value = eval(val->value, environment);
+ 	add_variable(environment, name.str, value);
  	return value;
 }
 
-void * quote (Node * args, Environment * environment)
+static Element quote (Node * args, Environment * environment)
 {
  	return args->value;
 }
@@ -73,56 +73,56 @@ void * quote (Node * args, Environment * environment)
 // selection.
 
 // Only on atoms!
-static void * eq(Node * lhs, Environment * env)
+static Element eq(Node * lhs, Environment * env)
 {
-  if (lhs == NULL || lhs->value == NULL) return NULL;
-  Node * rhs = lhs->next;
- 	if (rhs == NULL || rhs->value == NULL) return NULL;
+  if (lhs == NULL || lhs->value.ptr == NULL) return (Element) NULL;
+  Node * rhs = lhs->next.node;
+ 	if (rhs == NULL || rhs->value.ptr == NULL) return (Element) NULL;
 
-  void * lhsval = eval(lhs->value, env);
-  void * rhsval = eval(rhs->value, env);
+  Element lhsval = eval(lhs->value, env);
+  Element rhsval = eval(rhs->value, env);
 
-  if (get_type(lhsval) >= VTYPE_LIST) return NULL;
-  if (get_type(rhsval) >= VTYPE_LIST) return NULL;
+  if (get_type(lhsval.ptr) >= VTYPE_LIST) return (Element) NULL;
+  if (get_type(rhsval.ptr) >= VTYPE_LIST) return (Element) NULL;
 
-  if (get_type(lhsval) != get_type(rhsval)) return NULL;
-  if ((get_type(lhsval) == VTYPE_STRING || get_type(lhsval) == VTYPE_ID)
-      && streq((char *) lhs->value, (char *) rhsval))
-    return lhsval; // 'true'
-  else if ((*(intptr_t*) lhsval) == (*(intptr_t*) rhsval))
-    return lhsval; // 'true'
+  if (get_type(lhsval.ptr) != get_type(rhsval.ptr)) return (Element) NULL;
+  if ((get_type(lhsval.ptr) == VTYPE_STRING || get_type(lhsval.ptr) == VTYPE_ID)
+      && streq(lhsval.str, rhsval.str))
+    return (Element) lhsval; // 'true'
+  else if (*(lhsval.intptr) == *(rhsval.intptr))
+    return (Element) lhsval; // 'true'
 
-  return NULL; // 'false'
+  return (Element) NULL; // 'false'
 }
 
 // This one is not usually quoted as a required primitive
-// but it makes producing a list with evaluated contents 
+// but it makes producing a list with evaluated contents
 // a lot easier compared to repeated cons'ing.
-void * list(Node * args, Environment * environment)
+static Element list(Node * args, Environment * environment)
 {
-	if (args == NULL || args->value == NULL) return NULL;
+	if (args == NULL || args->value.ptr == NULL) return (Element) NULL;
 	Node * result = new(Node, VTYPE_LIST);
 	result->value = eval(args->value, environment);
-	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) {
-		result->next = args->next;
+	if (args->next.ptr == NULL || get_type(args->next.ptr) != VTYPE_LIST) {
+		result->next.ptr = args->next.ptr;
 	} else {
-		result->next = list(args->next, environment);
+		result->next = list(args->next.node, environment);
 	}
-	return result;
+	return (Element) result;
 }
 
 // So let's throw in 'his' atom as well for now.
-void * atom(Node * arg, Environment * env)
+static Element atom(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(eval(arg->value, env)) >= VTYPE_LIST) return NULL;
+	if (arg == NULL || get_type(eval(arg->value, env).ptr) >= VTYPE_LIST) return (Element) NULL;
 	return arg->value;
 }
 
-static inline void * typify(special_form form)
+static inline Element typify(special_form form)
 {
  	special_form * type = new (special_form, VTYPE_SPECIAL);
  	(* type) = form;
- 	return type;
+ 	return (Element) type;
 }
 
 void register_specials(Environment * env)

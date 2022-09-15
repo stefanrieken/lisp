@@ -29,25 +29,25 @@ Node * transform(Node * list, Environment * global, Environment * env);
  * that all LISP expressions should produce a result.
  */
 bool transform_definition_expression(Node * list, Environment * global, Environment * env, Node ** result) {
-  int type = get_type(list->value);
+  int type = get_type(list->value.ptr);
   if (type != VTYPE_ID) return false;
 
-  char * label = ((char *) list->value);
+  char * label = list->value.str;
 
   // For now this 'define' represents all flavours of 'label', 'set!', etc.
   if (strcmp("define", label) == 0) {
     // always add to the current environment;
     // if that equals the global env
     // then the assignment is available from everywhere
-    add_variable(env, (char *) ((Node *) list->next)->value, NULL);
+    add_variable(env, list->next.node->value.str, (Element) NULL);
 
     // This is just because every expression is expected to return a result,
     // and we chain that result in a node.
     // It can be of little use except for clogging up the stack, all the more
     // because at least in Scheme the return value of 'define' is undefined (heh).
     (*result) = new(Node, VTYPE_LIST);
-    (*result)->next = NULL;
-    (*result)->value = NULL; // TODO type this value to avoid 'EVAL'!
+    (*result)->next =(Element) NULL;
+    (*result)->value = (Element) NULL; // TODO type this value to avoid 'EVAL'!
     return true;
   }
   // else
@@ -62,10 +62,10 @@ bool transform_definition_expression(Node * list, Environment * global, Environm
  * with argument definitions, and the code body.
  */
 bool transform_lambda_expression(Node * list, Environment * global, Environment * env, Node ** result) {
-  int type = get_type(list->value);
+  int type = get_type(list->value.ptr);
   if (type != VTYPE_ID) return false;
 
-  char * label = ((char *) list->value);
+  char * label = list->value.str;
 
   if (strcmp("lambda", label) == 0)
   {
@@ -74,25 +74,25 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
     lambda_env->parent = env;
 
     // extract arg names:
-    if (list->next != NULL && get_type(list->next) == VTYPE_LIST)
+    if (list->next.ptr != NULL && get_type(list->next.ptr) == VTYPE_LIST)
     {
-      Node * argslist = ((Node *) list->next)->value;
+      Node * argslist = list->next.node->value.node;
       while (argslist != NULL)
       {
-        add_variable(lambda_env, (char *) argslist->value, NULL);
-        argslist = argslist->next;
+        add_variable(lambda_env, argslist->value.str, (Element) NULL);
+        argslist = argslist->next.node;
       }
     }
 
     // Bind environment to one node before code
     Node * lambda_expr = new(Node, VTYPE_LIST);
-    lambda_expr->value = (void*) (((intptr_t)lambda_env)|NATIVE); // = bind
-    lambda_expr->next = transform(((Node*) ((Node*)list->next)->next)->value, global, lambda_env);
+    lambda_expr->value.ptr = (void*) (((intptr_t)lambda_env)|NATIVE); // = bind
+    lambda_expr->next.node = transform(list->next.node->next.node->value.node, global, lambda_env);
 
-    // Keep lambda expression out-of-line    
+    // Keep lambda expression out-of-line
     (*result) = new(Node, VTYPE_LIST);
-    (*result)->value = (void*) (((intptr_t)lambda_expr)|NATIVE);
-    (*result)->next = NULL;
+    (*result)->value.ptr = (void*) (((intptr_t)lambda_expr)|NATIVE);
+    (*result)->next = (Element) NULL;
     return true;
   }
   // else
@@ -109,25 +109,25 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
  */
 
 State * make_new_state_for(Node * function, State * caller_state) {
-  if (function == NULL || function->value == NULL) return caller_state;
-  
-  int type = get_type(function->value);
+  if (function == NULL || function->value.ptr == NULL) return caller_state;
+
+  int type = get_type(function->value.ptr);
   if (type == VTYPE_LAMBDA) {
-    Environment * env = (Environment *) function->value;
+    Environment * env = (Environment *) function->value.ptr;
     Environment * lambda_env = new(Environment, VTYPE_ENVIRONMENT);
     lambda_env->parent = env;
 
-    // extract arg names:    
-    if (function->next != NULL && get_type(function->next) == VTYPE_LIST)
+    // extract arg names:
+    if (function->next.ptr != NULL && get_type(function->next.ptr) == VTYPE_LIST)
     {
-      Node * argslist = ((Node *) function->next)->value;
+      Node * argslist = function->next.node->value.node;
       while (argslist != NULL)
       {
-        add_variable(lambda_env, (char *) argslist->value, NULL);
-        argslist = argslist->next;
+        add_variable(lambda_env, argslist->value.str, (Element) NULL);
+        argslist = argslist->next.node;
       }
     }
-    
+
     State * state = malloc(sizeof(State)); // TODO use TMMH
     state->at = 0;
     state->code_size = 0; //TODO
@@ -146,7 +146,7 @@ State * make_new_state_for(Node * function, State * caller_state) {
  * 2) Recursively transform conditionally executed sub-expressions;
  * 3) Recursively transform and in-line regular sub-expressions.
  * 4) Extend the lexical environment and add variable slots; add code to activate extended environment(TODO)
- * 5) Extend the lexical environment as a function call template and add argument slots 
+ * 5) Extend the lexical environment as a function call template and add argument slots
  * 6) Re-chain to postfix (stack order)
  *
  * Not all of the above are done all of the time:
@@ -170,65 +170,65 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
 
   while(list != NULL)
   {
-    if (list->value == NULL) {
+    if (list->value.ptr == NULL) {
 //printf("null\n");
       result = new(Node, VTYPE_LIST);
-      result->next = NULL;
-      result->value = NULL; // TODO type this null
+      result->next = (Element) NULL;
+      result->value = (Element) NULL; // TODO type this null
       goto process_result; // skip-ahead to bottom of loop
     }
 
-    int type = get_type(list->value);
-    if (type == VTYPE_INT && *((intptr_t *) list->value) == (*((intptr_t *) list->value) << 2) >> 2)
+    int type = get_type(list->value.ptr);
+    if (type == VTYPE_INT && *(list->value.intptr) == (*(list->value.intptr) << 2) >> 2)
     {
       //printf("in-lining int val %ld\n", *((intptr_t *) list->value));
       // in range for in-line int
       result = new(Node, VTYPE_LIST);
-      result->next = NULL;
-      result->value = (void *) ((*((intptr_t *) list->value) << 2) | INTEGER); // encode as int
+      result->next = (Element) NULL;
+      result->value.ptr = (void *) (((*(list->value.intptr)) << 2) | INTEGER); // encode as int
     }
     else if (type == VTYPE_ID)
     {
       result = new(Node, VTYPE_LIST);
-      result->next = NULL;
+      result->next.ptr = NULL;
       if (evaluate != 0	) {
-        Variable * var = find_variable(env, list->value, true); // first local then global
-        if (var == NULL && global != env) var = find_variable(global, list->value, true);
+        Variable * var = find_variable(env, list->value.str, true); // first local then global
+        if (var == NULL && global != env) var = find_variable(global, list->value.str, true);
         if (var != NULL) {
           // hmm, having to jump through the same hoops once more here
-          if(var->value != NULL) {
-            int var_type = get_type(var->value);
-            if (type == VTYPE_INT && ((intptr_t) var->value) == (((intptr_t) (var->value) << 2) >> 2)) {
-              result->value = (void*) ( (((intptr_t) result->value) << 2 ) | INTEGER);
+          if(var->value.ptr != NULL) {
+            int var_type = get_type(var->value.ptr);
+            if (type == VTYPE_INT && (*(var->value.intptr)) == ((*(var->value.intptr)) << 2) >> 2) {
+              result->value.as_int = ((*(var->value.intptr)) << 2) | INTEGER;
             }
             else if (var_type == VTYPE_PRIMITIVE || var_type == VTYPE_SPECIAL) {
               if (var_type == VTYPE_SPECIAL)
               {
-                if (strcmp("if", list->value) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
+                if (strcmp("if", list->value.str) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
                 else evaluate = 0;
               }
-              result->value = (void*) (((intptr_t) var->value) | PRIMITIVE);
+              result->value.as_int = (var->value.as_int | PRIMITIVE);
             }
             else if (var_type != VTYPE_ID) {
-              result->value = (void*) (((intptr_t) var->value) | NATIVE); // assume native data at this point
+              result->value.as_int = (var->value.as_int | NATIVE); // assume native data at this point
             }
           }
         } else {
-          result->value = NULL; // TODO type this null
+          result->value = (Element) NULL; // TODO type this null
         }
       } else {
         // encode label reference
         // TODO: We can't have labels as normal char pointers IF we want support for negative values (label+eval).
         // But for now it's just char pointers followed by a separate eval.
-        result->value=(void*) (((intptr_t)list->value) | LABEL); // encode as label reference == leave as-is
+        result->value.as_int = (list->value.as_int | LABEL); // encode as label reference == leave as-is
       }
     }
     else if (type < VTYPE_ID)
     {
       // Native value pointer
       result = new(Node, VTYPE_LIST);
-      result->next = NULL;
-      result->value = (void*) (((intptr_t) list->value) | NATIVE); // encode as language-native pointer
+      result->next.ptr = NULL;
+      result->value.as_int = (list->value.as_int | NATIVE); // encode as language-native pointer
     }
     else if (type == VTYPE_LIST)
     {
@@ -237,14 +237,14 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
       // IF we have to evaluate at this point, we are faced with a
       // sub-expression: (* (+ x 2) 3) that we put in line.
       if (evaluate != 0) {
-        result = transform(list->value, global, env); // may be NULL!
+        result = transform(list->value.node, global, env); // may be NULL!
       } else {
         result = new(Node, VTYPE_LIST);
-        result->next = NULL;
-        result->value = (void *) (((intptr_t) list->value) | NATIVE); // encode as language-native pointer
+        result->next.ptr = NULL;
+        result->value.as_int = (list->value.as_int | NATIVE); // encode as language-native pointer
         // Muhaha we still transform the list anyway!!1!
-        // 
-        result->value = (void*) ((intptr_t)transform(list->value, global, env) | NATIVE);
+        //
+        result->value.as_int = (((intptr_t) transform(list->value.node, global, env)) | NATIVE);
       }
     }
 /*  else if (type == SPECIAL || type == PRIMITIVE)
@@ -261,27 +261,27 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     // Pre-to-postfix inversion:
     if (result != NULL) { // may be null in case of 'define'
       Node * result_end = result;
-      while (result_end->next != NULL) {
-        result_end = (Node *) result_end->next;
+      while (result_end->next.node != NULL) {
+        result_end = result_end->next.node;
         length++;
       }
       length++; // have at least one new node at this point
-      
+
       if (total == NULL) {
         // add 'eval' statement at end of this expression
         total = new(Node, VTYPE_LIST);
-        total->value = 0;
-        total->next = NULL;
+        total->value.as_int = 0;
+        total->next.ptr = NULL;
       }
 
-      result_end->next = total;
+      result_end->next.ptr = total;
       total = result;
       result = NULL;
     }
 
     // Proceed to next item
     if (evaluate < 0) evaluate++;
-    list = ((Node *) list->next);
+    list = ((Node *) list->next.ptr);
   }
 
   // Optional: transform to array (using length)

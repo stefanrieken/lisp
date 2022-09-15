@@ -28,125 +28,124 @@ static inline bool streq(char * str1, char * str2)
 // true == anything else, including the argument as passed
 // N.B. of course this leaves ample room for null pointers
 // if we do not secure other methods to recognize this special value
-static void * atom(Node * arg, Environment * env)
+static Element atom(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(eval(arg->value, env)) >= VTYPE_LIST) return NULL;
+	if (arg == NULL || get_type(eval(arg->value, env).ptr) >= VTYPE_LIST) return (Element) NULL;
 	return arg->value;
 }
 
 // Only on atoms!
-static void * eq(Node * lhs, Environment * env)
+static Element eq(Node * lhs, Environment * env)
 {
-  if (lhs == NULL || lhs->value == NULL) return NULL;
-  Node * rhs = lhs->next;
- 	if (rhs == NULL || rhs->value == NULL) return NULL;
+  if (lhs == NULL || lhs->value.ptr == NULL) return (Element) NULL;
+  Node * rhs = lhs->next.node;
+ 	if (rhs == NULL || rhs->value.ptr == NULL) return (Element) NULL;
 
-  void * lhsval = eval(lhs->value, env);
-  void * rhsval = eval(rhs->value, env);
+  Element lhsval = eval(lhs->value, env);
+  Element rhsval = eval(rhs->value, env);
 
-  if (get_type(lhsval) >= VTYPE_LIST) return NULL;
-  if (get_type(rhsval) >= VTYPE_LIST) return NULL;
+  if (get_type(lhsval.ptr) >= VTYPE_LIST) return (Element) NULL;
+  if (get_type(rhsval.ptr) >= VTYPE_LIST) return (Element) NULL;
 
-  if (get_type(lhsval) != get_type(rhsval)) return NULL;
-  if ((get_type(lhsval) == VTYPE_STRING || get_type(lhsval) == VTYPE_ID)
-      && streq((char *) lhs->value, (char *) rhsval))
+  if (get_type(lhsval.ptr) != get_type(rhsval.ptr)) return (Element) NULL;
+  if ((get_type(lhsval.ptr) == VTYPE_STRING || get_type(lhsval.ptr) == VTYPE_ID)
+      && streq(lhsval.str, rhsval.str))
     return lhsval; // 'true'
-  else if ((*(intptr_t*) lhsval) == (*(intptr_t*) rhsval))
+  else if (*(lhsval.intptr) == *(rhsval.intptr))
     return lhsval; // 'true'
 
-  return NULL; // 'false'
+  return (Element) NULL; // 'false'
 }
 
-static void * car(Node * arg, Environment * env)
+static Element car(Node * arg, Environment * env)
 {
- 	if (arg == NULL) return NULL;
- 	Node * val = (Node *) eval(arg->value, env);
+ 	if (arg == NULL) return (Element) NULL;
+ 	Node * val = eval(arg->value, env).node;
  	return val->value;
 }
 
-static void * cdr(Node * arg, Environment * env)
+static Element cdr(Node * arg, Environment * env)
 {
- 	if (arg == NULL) return NULL;
- 	Node * val = (Node *) eval(arg->value, env);
+ 	if (arg == NULL) return (Element) NULL;
+ 	Node * val = eval(arg->value, env).node;
  	return val->next;
 }
 
-static void * cons(Node * args, Environment * environment)
+static Element cons(Node * args, Environment * environment)
 {
- 	if (args == NULL) return NULL;
- 	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) return NULL;
- 	Node * next = (Node *) args->next;
+ 	if (args == NULL) return (Element) NULL;
+ 	if (args->next.ptr == NULL || get_type(args->next.ptr) != VTYPE_LIST) return (Element) NULL;
+ 	Node * next = args->next.node;
  	Node * result = new (Node, VTYPE_LIST);
  	result->value = eval(args->value, environment);
  	result->next = eval(next->value, environment);
- 	return result;
+ 	return (Element) result;
 }
 
-static void * cond(Node * arg, Environment * env)
+static Element cond(Node * arg, Environment * env)
 {
-	if (arg == NULL || get_type(arg->value) != VTYPE_LIST) return NULL;
+	if (arg == NULL || get_type(arg->value.ptr) != VTYPE_LIST) return (Element) NULL;
 
 	while (arg != NULL) {
-	 	Node * cond = arg->value;
-	 	if (cond== NULL) return NULL;
+	 	Node * cond = arg->value.node;
+	 	if (cond== NULL) return (Element) NULL;
 
 		// We first check the boolean outcome, where true is defined as "not null";
 		// Then we just check if the associated code block is actually there :)
-		if (eval(cond->value, env) != NULL && cond->next != NULL) {
-			Node * expr = cond->next;
-			Node * result = eval(expr->value, env);
-			return result;
+		if (eval(cond->value, env).ptr != NULL && cond->next.ptr != NULL) {
+			Node * expr = cond->next.node;
+			return eval(expr->value, env);
 		}
-		arg = arg->next;
+		arg = arg->next.node;
 	}
-	return NULL;
+	return (Element) NULL;
 }
 
-static void * lambda(Node * arg, Environment * environment)
+static Element lambda(Node * arg, Environment * environment)
 {
  	Node * node = new(Node, VTYPE_LIST);
- 	node->value = environment;
- 	set_type(node->value, VTYPE_LAMBDA);
- 	node->next = arg;
- 	return node;
+ 	node->value.ptr = environment;
+ 	set_type(node->value.ptr, VTYPE_LAMBDA);
+ 	node->next.node = arg;
+ 	return (Element) node;
 }
 
-static void * label(Node * arg, Environment * environment)
+static Element label(Node * arg, Environment * environment)
 {
- 	if (arg == NULL || get_type(arg->value) != VTYPE_ID) return NULL;
- 	if (arg->next == NULL) return NULL;
- 	Node * val = (Node *) arg->next;
- 	void * value = eval(val->value, environment);
- 	add_variable(environment, arg->value, value);
- 	return value;
+ 	if (arg == NULL || get_type(arg->value.ptr) != VTYPE_ID) return (Element) NULL;
+ 	if (arg->next.ptr == NULL) return (Element) NULL;
+ 	Node * val = arg->next.node;
+ 	Element value = eval(val->value, environment);
+ 	add_variable(environment, arg->value.str, value);
+ 	return (Element) value;
 }
 
 // This one is not usually quoted as a required primitive
-// but it makes producing a list with evaluated contents 
+// but it makes producing a list with evaluated contents
 // a lot easier compared to repeated cons'ing.
-static void * list(Node * args, Environment * environment)
+static Element list(Node * args, Environment * environment)
 {
-	if (args == NULL || args->value == NULL) return NULL;
+	if (args == NULL || args->value.ptr == NULL) return (Element) NULL;
 	Node * result = new(Node, VTYPE_LIST);
 	result->value = eval(args->value, environment);
-	if (args->next == NULL || get_type(args->next) != VTYPE_LIST) {
-		result->next = args->next;
+	if (args->next.ptr == NULL || get_type(args->next.ptr) != VTYPE_LIST) {
+		result->next.ptr = args->next.ptr;
 	} else {
-		result->next = list(args->next, environment);
+		result->next = list(args->next.node, environment);
 	}
- 	return result;
+ 	return (Element) result;
 }
 
-static void * quote (Node * args, Environment * environment)
+static Element quote (Node * args, Environment * environment)
 {
  	return args->value;
 }
 
-static inline void * typify(special_form form)
+static inline Element typify(special_form form)
 {
  	special_form * type = new (special_form, VTYPE_SPECIAL);
  	(* type) = form;
- 	return type;
+ 	return (Element) type;
 }
 
 void register_specials(Environment * env)
