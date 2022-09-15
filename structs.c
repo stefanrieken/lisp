@@ -40,7 +40,7 @@ Variable * find_variable(Environment * environment, char * name, bool recurse)
 	if (var != NULL) {
 		return var;
 	} else if (recurse && environment->parent != NULL) {
-		find_variable(environment->parent, name, recurse);
+		return find_variable(environment->parent, name, recurse);
 	}
 	// else
 	return NULL;

@@ -10,6 +10,8 @@
 
 #include "../wonky/wonky.h"
 
+#include "transform.h"
+
 #define new(Type, TYPE) (Type *) allocate_type (sizeof(Type), TYPE)
 #define mask(val, m) (((intptr_t) val) & m)
 
@@ -20,15 +22,13 @@ static inline void * allocate_type(int size, int type)
   return bla;
 }
 
-Node * transform(Node * list, Environment * global, Environment * env);
-
 /**
  * This one may be provided by language implementation (lisp or scheme)
  * to account for different names / behaviours.
  * It may or may not produce a node as a side result; common wisdom says
  * that all LISP expressions should produce a result.
  */
-bool transform_definition_expression(Node * list, Environment * global, Environment * env, Node ** result) {
+bool transform_definition_expression(Node * list, Environment * env, Node ** result) {
   int type = get_type(list->value.ptr);
   if (type != VTYPE_ID) return false;
 
@@ -61,7 +61,7 @@ bool transform_definition_expression(Node * list, Environment * global, Environm
  * The result is a 'closure' - a combination of the current environment, extended
  * with argument definitions, and the code body.
  */
-bool transform_lambda_expression(Node * list, Environment * global, Environment * env, Node ** result) {
+bool transform_lambda_expression(Node * list, Environment * env, Node ** result) {
   int type = get_type(list->value.ptr);
   if (type != VTYPE_ID) return false;
 
@@ -87,7 +87,7 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
     // Bind environment to one node before code
     Node * lambda_expr = new(Node, VTYPE_LIST);
     lambda_expr->value.ptr = (void*) (((intptr_t)lambda_env)|NATIVE); // = bind
-    lambda_expr->next.node = transform(list->next.node->next.node->value.node, global, lambda_env);
+    lambda_expr->next.node = transform(list->next.node->next.node->value.node, lambda_env);
 
     // Keep lambda expression out-of-line
     (*result) = new(Node, VTYPE_LIST);
@@ -109,10 +109,13 @@ bool transform_lambda_expression(Node * list, Environment * global, Environment 
  */
 
 State * make_new_state_for(Node * function, State * caller_state) {
+printf("Making new state for %p %p\n", function, caller_state);
+
   if (function == NULL || function->value.ptr == NULL) return caller_state;
 
-  int type = get_type(function->value.ptr);
+  int type = get_type((void*) (function->value.as_int & ~0b11));
   if (type == VTYPE_LAMBDA) {
+  printf("it's a lambda!\n");
     Environment * env = (Environment *) function->value.ptr;
     Environment * lambda_env = new(Environment, VTYPE_ENVIRONMENT);
     lambda_env->parent = env;
@@ -137,6 +140,7 @@ State * make_new_state_for(Node * function, State * caller_state) {
     return state;
   }
   // else
+  printf("returning caller state\n");
   return caller_state;
 }
 
@@ -160,7 +164,7 @@ State * make_new_state_for(Node * function, State * caller_state) {
  * LAMBDA: extend lexical scope, add arg slots; save scope template with code
  *
  */
-Node * transform_common_expression(Node * list, Environment * global, Environment * env) {
+Node * transform_common_expression(Node * list, Environment * env) {
   int length = 0;
 
   int evaluate = 1; // tri-state: 0=never, 1=always; negative=until re-set to 0 (this is to support 'if')
@@ -191,9 +195,8 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
     {
       result = new(Node, VTYPE_LIST);
       result->next.ptr = NULL;
-      if (evaluate != 0	) {
-        Variable * var = find_variable(env, list->value.str, true); // first local then global
-        if (var == NULL && global != env) var = find_variable(global, list->value.str, true);
+      if (evaluate != 0) {
+        Variable * var = find_variable(env, list->value.str, true);
         if (var != NULL) {
           // hmm, having to jump through the same hoops once more here
           if(var->value.ptr != NULL) {
@@ -214,6 +217,7 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
             }
           }
         } else {
+        printf("null variable: %s\n", list->value.str);
           result->value = (Element) NULL; // TODO type this null
         }
       } else {
@@ -237,14 +241,14 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
       // IF we have to evaluate at this point, we are faced with a
       // sub-expression: (* (+ x 2) 3) that we put in line.
       if (evaluate != 0) {
-        result = transform(list->value.node, global, env); // may be NULL!
+        result = transform(list->value.node, env); // may be NULL!
       } else {
         result = new(Node, VTYPE_LIST);
         result->next.ptr = NULL;
         result->value.as_int = (list->value.as_int | NATIVE); // encode as language-native pointer
         // Muhaha we still transform the list anyway!!1!
         //
-        result->value.as_int = (((intptr_t) transform(list->value.node, global, env)) | NATIVE);
+        result->value.as_int = (((intptr_t) transform(list->value.node, env)) | NATIVE);
       }
     }
 /*  else if (type == SPECIAL || type == PRIMITIVE)
@@ -292,17 +296,18 @@ Node * transform_common_expression(Node * list, Environment * global, Environmen
  * Translate pre-fixed, unlinked nodes into
  * postfixed, statically linked wonkybyte nodes.
  */
-Node * transform(Node * list, Environment * global, Environment * env)
+Node * transform(Node * list, Environment * env)
 {
   if (list == NULL) return NULL;
 
   Node * result = NULL;
 
-  if (transform_definition_expression(list, global, env, &result)) {
+  if (transform_definition_expression(list, env, &result)) {
     return result;
-  } else if(transform_lambda_expression(list, global, env, &result)) {
+  } else if(transform_lambda_expression(list, env, &result)) {
     return result;
   } else {
-    return transform_common_expression(list, global, env);
+    return transform_common_expression(list, env);
   }
 }
+

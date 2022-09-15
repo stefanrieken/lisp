@@ -8,22 +8,46 @@
 #include "print.h"
 #include "lisp_primitives.h"
 #include "special.h"
+#include "../wonky/wonky.h"
 #include "transform.h"
 #include "../tmmh/tmmh.h"
-#include "eval.h"
+
 
 #define mask(val, m) (((intptr_t) val) & m)
 
 #define DATA(val) (((intptr_t) val.as_int) & ~0b11)
 #define BTYPE(val) (((intptr_t) val.as_int) & 0b11)
 
-// Copied over from wonky.h
-typedef enum BasicType {
-  LABEL,
-  INTEGER,
-  NATIVE,
-  PRIMITIVE
-} BasicType;
+int count(Node * nodes)
+{
+  if(nodes->next.ptr == NULL) return 1;
+  else return(count(nodes->next.ptr)) +1;
+}
+
+void fill(Element elements[], Node * list)
+{
+  if(list != NULL)
+  {
+    elements[0] = list->value;
+    fill(elements+1, list->next.node);
+  }
+}
+
+State * to_state(Node * nodes, Environment * env)
+{
+  int size = count(nodes);
+
+  Element * code = malloc(sizeof(Element) * size); // TODO use tmmh
+  fill(code, nodes);
+
+  State * state = malloc(sizeof(State)); // TODO use tmmh
+  state->at = 0;
+  state->code = code;
+  state->env = env;
+  state->stack = new_stack();
+  state->code_size = size;
+  return state;
+}
 
 void * memory;
 
@@ -198,8 +222,18 @@ int main()
 	assert(")", 0, apply3->next.as_int);
 	remove_indent();
 
-	printf("\n\nRunning (plain) 'eval':\n\n");
-	println_value(eval((Element) parsed, root_env));
+	printf("\n\nConverting to State\n\n");
+	State * state = to_state(post, root_env);
+
+	printf("\n\nRunning (wonky) 'eval':\n\n");
+	// TODO reasons why this presently still crashes:
+	// 1) The 'wonky' eval() assumes a PrimitiveCallback where we provide (PrimitiveCallback *) at best, BUT:
+	// 2) The primitives we provide ('eq' to begin with) are NOT expecting a State parameter, or Basic Type'd values
+	//    (In other words, there's still lots of stuff to be done here. We could postpone providing number of args
+	//     if we temporarily hack 'list' to fit the needs of our test, but there's that as well.)
+	// 3) Lambda's, lets, etc. are not presently compiled to States, only transformed.
+	//    So there's lots of garbage going on at this point as well.
+	eval(state);
 
 	fclose(file);
 }
