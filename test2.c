@@ -102,8 +102,21 @@ int main()
 
 	register_specials(root_env);
 	register_primitives(root_env);
+	
+	printf("\n\nTesting BasicData alignment:\n\n");
+	Element element;
+	assert("struct size=4", 4, sizeof(BasicData)); // N.b. is smaller than Element on 64-bit systems!
+	element.basic.label.index=9213;
+	element.basic.label.args=42;
+	element.basic.label.type=0b11;
+	assert("9213", element.basic.label.index, element.as_int >> 8);
+	assert("42", element.basic.label.args, (element.as_int >> 2) & 0b111111);
+	assert("0b11", element.basic.label.type, element.as_int & 0b11);
+	//
+	element.basic.value.as_int = 4767;
+	assert("4767", element.basic.value.as_int, element.as_int >> 2);
 
-	printf("Parsing test file:\n\n");
+	printf("\n\nParsing test file:\n\n");
 
 	FILE * file = fopen("testdata.scm", "r");
 	read_from(file);
