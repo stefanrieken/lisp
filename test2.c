@@ -6,8 +6,7 @@
 #include "structs.h"
 #include "parse.h"
 #include "print.h"
-#include "lisp_primitives.h"
-#include "special.h"
+#include "prims.h"
 #include "../wonky/wonky.h"
 #include "transform.h"
 #include "../tmmh/tmmh.h"
@@ -89,20 +88,15 @@ void remove_indent()
 }
 
 
-extern void * list(Node * arg, Environment * env);
+//extern bool eq(State * state);
+//extern bool iff(State * state);
+
 int main()
 {
 	pif pifs[] = {pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none, pif_none};
 
 	memory = tmmh_init(5000, pifs);
-	Environment * root_env = (Environment *) allocate(memory, sizeof(Environment), false);
 
-	root_env->parent = NULL;
-	root_env->variables = NULL;
-
-	register_specials(root_env);
-	register_primitives(root_env);
-	
 	printf("\n\nTesting BasicData alignment:\n\n");
 	Element element;
 	assert("struct size=4", 4, sizeof(BasicData)); // N.b. is smaller than Element on 64-bit systems!
@@ -174,8 +168,14 @@ int main()
 	assert(")", 0, (intptr_t) successtr->next.as_int);
 	remove_indent();
 
+
 	printf("\n\nCalling 'transform' (work in progress)\n\n");
-	//Environment * transform_env = (Environment *) allocate(memory, sizeof(Environment), false);
+  Environment * root_env = (Environment *) allocate(memory, sizeof(Environment), false);
+
+	root_env->parent = NULL;
+	root_env->variables = NULL;
+
+	register_prims(root_env);
 
 	indent = 0;
 
@@ -219,17 +219,15 @@ int main()
 	Node * val2 = val1->next.node;
 	assert(" int:", 0b01, mask(val2->value.as_int, 0b11));
 	assert("2", 2, (val2->value.as_int >> 2));
-	Node * eq = val2->next.node;
-	assert(" primitive:", PRIMITIVE, mask(eq->value.as_int, 0b11));
-	// TODO this is interesting: apparently we do wrap the callbacks inside a tmmh pointer
-	// This extra indirection may not be required after 'transform' has egalized the difference
-	// between special and primitive functions (by (not) transforming their arguments)
-	assert("special:eq", VTYPE_SPECIAL, get_type((void*)mask(eq->value.as_int, ~0b11)));
-	Node * apply2 = eq->next.node;
+	Node * equ = val2->next.node;
+	assert(" primitive:", PRIMITIVE, BTYPE(equ->value));
+//  printf("eq: %p %p %p\n", equ->value.ptr, (void*) DATA(equ->value), eq);
+//	assert("eq", (intptr_t) eq & ~0b11, DATA(equ->value)); // TODO why are prims pointers unaligned?
+	Node * apply2 = equ->next.node;
 	assert(" <apply>", 0, apply2->value.as_int);
 	Node * if2 = apply2->next.node;
-	assert(" primitive:", PRIMITIVE, mask(if2->value.as_int, 0b11));
-	assert("special:if", VTYPE_SPECIAL, get_type((void*) mask(if2->value.as_int, ~0b11))); // TODO same comment as before
+	assert(" primitive:", PRIMITIVE, BTYPE(if2->value));
+//	assert("if", (intptr_t) iff & ~0b11, DATA(if2->value)); // TODO why are prims pointers unaligned?
 	Node * apply3 = if2->next.node;
 	assert(" <apply>", 0, apply3->value.as_int);
 	assert(")", 0, apply3->next.as_int);

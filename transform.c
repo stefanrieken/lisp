@@ -108,22 +108,23 @@ bool transform_lambda_expression(Node * list, Environment * env, Node ** result)
  * - If anything else, just return caller_state.
  */
 
-State * make_new_state_for(Node * function, State * caller_state) {
+State * make_new_state_for(void ** function, State * caller_state) {
 printf("Making new state for %p %p\n", function, caller_state);
 
-  if (function == NULL || function->value.ptr == NULL) return caller_state;
+  if (function == NULL) return caller_state;
 
-  int type = get_type((void*) (function->value.as_int & ~0b11));
+  int type = get_type((void*) (((intptr_t)(function)) & ~0b11));
   if (type == VTYPE_LAMBDA) {
   printf("it's a lambda!\n");
-    Environment * env = (Environment *) function->value.ptr;
+    Node * lambda = (Node*) (*function);
+    Environment * env = (Environment *) lambda->value.ptr;
     Environment * lambda_env = new(Environment, VTYPE_ENVIRONMENT);
     lambda_env->parent = env;
 
     // extract arg names:
-    if (function->next.ptr != NULL && get_type(function->next.ptr) == VTYPE_LIST)
+    if (lambda->next.ptr != NULL && get_type(lambda->next.ptr) == VTYPE_LIST)
     {
-      Node * argslist = function->next.node->value.node;
+      Node * argslist = lambda->next.node->value.node;
       while (argslist != NULL)
       {
         add_variable(lambda_env, argslist->value.str, (Element) NULL);
@@ -139,8 +140,19 @@ printf("Making new state for %p %p\n", function, caller_state);
     state->stack = NULL; // TODO
     return state;
   }
+  else if (type == VTYPE_PRIMITIVE || type == VTYPE_SPECIAL)
+  {
+    printf("Copying state for prim; passing stack in full.\n");
+    State * state = malloc(sizeof(State)); // TODO use TMMH
+    state->at = 0;
+    state->code_size = 0; //TODO
+    state->code = NULL; // TODO
+    state->env = caller_state->env;
+    state->stack = caller_state->stack; // TODO
+    return state;
+  }
   // else
-  printf("returning caller state\n");
+  printf("returning caller state %d\n", type);
   return caller_state;
 }
 
@@ -199,22 +211,48 @@ Node * transform_common_expression(Node * list, Environment * env) {
         Variable * var = find_variable(env, list->value.str, true);
         if (var != NULL) {
           // hmm, having to jump through the same hoops once more here
-          if(var->value.ptr != NULL) {
-            int var_type = get_type(var->value.ptr);
-            if (type == VTYPE_INT && (*(var->value.intptr)) == ((*(var->value.intptr)) << 2) >> 2) {
-              result->value.as_int = ((*(var->value.intptr)) << 2) | INTEGER;
-            }
-            else if (var_type == VTYPE_PRIMITIVE || var_type == VTYPE_SPECIAL) {
-              if (var_type == VTYPE_SPECIAL)
-              {
-                if (strcmp("if", list->value.str) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
-                else evaluate = 0;
+          // NOTE: our variables should be basic tagged too!
+          Element value = (Element) (var->value.as_int & ~0b11);
+          int basictype = var->value.as_int & 0b11;
+          if (basictype == LABEL)
+          {
+            result->value = var->value;
+          }
+          else if (basictype == INTEGER)
+          {
+            result->value = var->value; // assume native data at this point
+          }
+          else if (basictype == NATIVE)
+          {
+            if(value.ptr != NULL) {
+              int var_type = get_type(value.ptr);
+              if (type == VTYPE_INT && (*(value.intptr)) == ((*(value.intptr)) << 2) >> 2) {
+                result->value.as_int = ((*(value.intptr)) << 2) | INTEGER;
               }
-              result->value.as_int = (var->value.as_int | PRIMITIVE);
+              // TODO shouldn't encounter these anymore; instead see basictype == PRIMITIVE below
+              else if (var_type == VTYPE_PRIMITIVE || var_type == VTYPE_SPECIAL) {
+                if (var_type == VTYPE_SPECIAL)
+                {
+                  if (strcmp("if", list->value.str) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
+                  else evaluate = 0;
+                }
+                result->value.as_int = (value.as_int | PRIMITIVE);
+              }
+              else if (var_type != VTYPE_ID) {
+                result->value.as_int = (value.as_int | NATIVE); // assume native data at this point
+              }
             }
-            else if (var_type != VTYPE_ID) {
-              result->value.as_int = (var->value.as_int | NATIVE); // assume native data at this point
-            }
+          }
+          else if (basictype == PRIMITIVE)
+          {
+            // We can't really tell direct primitives from direct specials.
+            // So either we have to wrap them in an indirect pointer again,
+            // or we have to work around this differently.
+            // As we have established that for optimal results every 'special'
+            // call should get a custom treatment here, maybe do that instead.
+            if (strcmp("if", list->value.str) == 0) evaluate = -2; // hack to only evaluate (this and) the first arg
+            else evaluate = 0;
+            result->value = var->value;
           }
         } else {
         printf("null variable: %s\n", list->value.str);
@@ -310,4 +348,3 @@ Node * transform(Node * list, Environment * env)
     return transform_common_expression(list, env);
   }
 }
-

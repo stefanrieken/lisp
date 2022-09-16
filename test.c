@@ -137,67 +137,6 @@ int main()
 	assert(")", 0, (intptr_t) successtr->next.as_int);
 	remove_indent();
 
-	printf("\n\nCalling 'transform' (work in progress)\n\n");
-	//Environment * transform_env = (Environment *) allocate(memory, sizeof(Environment), false);
-
-	indent = 0;
-
-	add_indent();
-	Node * post = transform(parsed, root_env);
-	assert("root:(", VTYPE_LIST, get_type((void *) mask(post, ~0b11)));
-		add_indent();
-		assert("native:", NATIVE, (intptr_t) mask(post->value.as_int, 0b11));
-		assert("(", VTYPE_LIST, get_type((void *) mask(post->value.as_int, ~0b11)));
-		Node * thenblock = ((Node*)mask(post->value.as_int, ~0b11));
-		assert("native:", NATIVE, mask(thenblock->value.as_int, 0b11));
-		assert("string:", VTYPE_STRING, get_type((void*) mask(thenblock->value.as_int, ~0b11)));
-		expect("successful!", (char *) mask(thenblock->value.as_int, ~0b11));
-			add_indent();
-			Node * lambda2 = thenblock->next.node;
-			assert("native:", NATIVE, BTYPE(lambda2->value));
-			assert("(", VTYPE_LIST, get_type((void*) DATA(lambda2->value)));
-			Node * closure = (Node*) DATA(lambda2->value);
-			assert("native:", NATIVE, BTYPE(closure->value));
-			assert("environment", VTYPE_ENVIRONMENT, get_type((void*) DATA(closure->value)));
-			Node * x = closure->next.node;
-			assert(" label:", LABEL, BTYPE(x->value));
-			expect("x", (char*) DATA(x->value));
-			Node * string = x->next.node;
-			assert(" native:", NATIVE, BTYPE(string->value));
-			assert("string:", VTYPE_STRING, get_type((void*) DATA(string->value)));
-			expect("This test is", (char*) DATA(string->value));
-			Node * liszt = string->next.node;
-			assert(" primitive:list", PRIMITIVE, BTYPE(liszt->value));
-			Node * apply = liszt->next.node;
-			assert(" <apply>", 0, apply->value.as_int);
-			assert(")", 0, apply->next.as_int);
-			remove_indent();
-		Node * apply1 = lambda2->next.node;
-		assert(" <apply>", 0, apply1->value.as_int);
-		assert(")", 0, apply1->next.as_int);
-		remove_indent();
-	Node * val1 = post->next.node;
-	assert("int:", INTEGER, mask(val1->value.as_int, 0b11));
-	assert("2", 2, (val1->value.as_int >> 2));
-	Node * val2 = val1->next.node;
-	assert(" int:", 0b01, mask(val2->value.as_int, 0b11));
-	assert("2", 2, (val2->value.as_int >> 2));
-	Node * eq = val2->next.node;
-	assert(" primitive:", PRIMITIVE, mask(eq->value.as_int, 0b11));
-	// TODO this is interesting: apparently we do wrap the callbacks inside a tmmh pointer
-	// This extra indirection may not be required after 'transform' has egalized the difference
-	// between special and primitive functions (by (not) transforming their arguments)
-	assert("special:eq", VTYPE_SPECIAL, get_type((void*)mask(eq->value.as_int, ~0b11)));
-	Node * apply2 = eq->next.node;
-	assert(" <apply>", 0, apply2->value.as_int);
-	Node * if2 = apply2->next.node;
-	assert(" primitive:", PRIMITIVE, mask(if2->value.as_int, 0b11));
-	assert("special:if", VTYPE_SPECIAL, get_type((void*) mask(if2->value.as_int, ~0b11))); // TODO same comment as before
-	Node * apply3 = if2->next.node;
-	assert(" <apply>", 0, apply3->value.as_int);
-	assert(")", 0, apply3->next.as_int);
-	remove_indent();
-
 	printf("\n\nRunning (plain) 'eval':\n\n");
 	println_value(eval((Element) parsed, root_env));
 
